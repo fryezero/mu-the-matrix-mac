@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>Play Mu The Matrix on an Apple-silicon Mac.</b><br>
-  One download. No CrossOver. The original launcher and game, at the game's full 25 frames per second.
+  One download. The original launcher and game, at the game's full 25 frames per second.
 </p>
 
 <p align="center">
