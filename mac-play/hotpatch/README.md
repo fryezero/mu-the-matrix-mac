@@ -176,7 +176,7 @@ set, every other render-thread `Sleep(ms>0)` wait on a waitable timer instead
 (falling back to `Sleep` if none can be created); `Sleep(0)` and other threads are
 untouched. The stats line `pace:` prints logic steps, late frames, overshoot and
 a swap-interval histogram. This is a reported behavior (`meshdraw-notes.md`, v7.2); the merged
-[frame-loop finding](https://github.com/fryezero/mu-the-matrix-recovery/blob/2e8d89e578204c80b6bcf6ce295193ad959bf2ea/docs/research/client-frame-loop.md) records the
+[frame-loop finding](https://github.com/fryezero/mu-the-matrix-native/blob/2e8d89e578204c80b6bcf6ce295193ad959bf2ea/docs/research/client-frame-loop.md) records the
 driver and cap locations.
 
 `../diagnostics/glstride.c` renders 150 frames using all six batch formats and prints a

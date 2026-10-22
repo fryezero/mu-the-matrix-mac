@@ -10,7 +10,7 @@ compatibility path for the original client. A native editable game remains open.
 The client identity remains `main.exe` SHA-256
 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
 No game instructions or assets are changed by this work. Earlier restored
-[record arithmetic](record-math.md) and [pose findings](pose-concat.md) establish
+[record arithmetic](https://github.com/fryezero/mu-the-matrix-native/blob/main/docs/research/record-math.md) and [pose findings](https://github.com/fryezero/mu-the-matrix-native/blob/main/docs/research/pose-concat.md) establish
 bounded math behaviors, not a profile of every in-world frame.
 
 The owner and Claude supplied these observations on 2026-10-16. They were not
@@ -499,7 +499,7 @@ not acquire their raw profiling/benchmark logs. Fresh compile and table checks
 are listed separately below. The million-call observation is not attributed to
 a new harness run or to Windows-native execution. The prior merged skinning
 reconstruction and its bounded instruction/corpus comparisons are documented in
-[PR #54](https://github.com/fryezero/mu-the-matrix-recovery/pull/54). They are a
+[PR #54](https://github.com/fryezero/mu-the-matrix-native/pull/54). They are a
 separate evidence class from the live replacement report.
 
 ### Mechanism and publication boundary
@@ -575,7 +575,7 @@ not been rerun for this opt-in snapshot.
 
 The reported test cap is 25 FPS / 40 ms. There is no identifiable cap installer
 in the pinned v7.0 source; this publication does not invent one. The separately
-merged [frame-loop analysis](https://github.com/fryezero/mu-the-matrix-recovery/blob/2e8d89e578204c80b6bcf6ce295193ad959bf2ea/docs/research/client-frame-loop.md)
+merged [frame-loop analysis](https://github.com/fryezero/mu-the-matrix-native/blob/2e8d89e578204c80b6bcf6ce295193ad959bf2ea/docs/research/client-frame-loop.md)
 locates the compiled-in cap and distinguishes rendering cadence from the fixed
 40 ms game-logic step.
 
@@ -727,7 +727,7 @@ replacement is equivalent is supported only by the verify runs below, not a proo
   `0x01d1df70` equals 6), and mugl instead paces swaps to a 40 ms schedule. Login
   and character screens keep the original sleep. GL output is unchanged and the
   logic accumulator still follows real time. The merged
-  [frame-loop finding](client-frame-loop.md) records the driver and the cap; the 25
+  [frame-loop finding](https://github.com/fryezero/mu-the-matrix-native/blob/main/docs/research/client-frame-loop.md) records the driver and the cap; the 25
   fps rate remains the game's fixed 40 ms logic step.
 
 Hotpatch mask: the v7.1 default is **7599** (bits 1, 2, 4, 8, 32, 128, 256, 1024,

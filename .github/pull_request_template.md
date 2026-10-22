@@ -1,15 +1,12 @@
 ## Result
 
-Describe the concrete behavior or finding and its scope.
-
-## Evidence
-
-Target/version digest, original addresses or file offsets, method, observation versus inference. Link reviewed summaries; keep raw private artifacts local.
+What changed for players or developers, and its scope.
 
 ## Validation
 
-List checks actually run and distinguish synthetic tests, private corpus checks and runtime observations.
+Checks actually run: `bash scripts/local-macos-ci.sh` (required), live tests (scene, fps/work, runtime, under the
+game lock), installer rehearsals. Separate synthetic tests from live observations.
 
 ## Remaining work
 
-State unresolved behavior, known limits, task ID, and the next handoff step. Update status/findings when they change.
+Known limits, task ID, next step. Update docs/status.md / docs/handoff.md when they change.

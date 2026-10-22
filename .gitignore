@@ -1,16 +1,10 @@
+# Local-only inputs and outputs (never committed)
 /input/
 /evidence/
 /runtime/
 /vendor/
 /publish/
 /dist/
-/tools/node_modules/
-/tools/python/
-/tools/.venv/
-/asset-recovery/verified*/
-/model-recovery/verified*/
-/companion-inventory.json
-/reconstructed/boot/recover-block
 __pycache__/
 .DS_Store
 *.pyc
@@ -26,6 +20,8 @@ __pycache__/
 *.png
 *.jpg
 *.zip
+*.dmg
+*.tar.xz
 *.mdmp
 *.dmp
 *.snapshot.json
@@ -33,14 +29,14 @@ __pycache__/
 .env
 .env.*
 
+# README screenshots: reviewed and hash-pinned in scripts/audit_repository.py
+!/docs/images/*.png
+!/docs/images/*.jpg
+
 /mac-play/mugl/build/
-
 /mac-play/diagnostics/build/
-
 /mac-play/hotpatch/build/
 /mac-play/machprof/build/
 /mac-play/installer/build/
-/mac-play/bundle/build/
-
-/native/build/
 /mac-play/installer/packaging/build/
+/mac-play/bundle/build/

@@ -18,25 +18,6 @@ build/glvbench.exe: glvbench.c | build
 	$(MINGW_CC) $(CFLAGS) $< -o $@ -lopengl32 -lgdi32
 build/eipprof.exe: eipprof.c | build
 	$(MINGW_CC) $(CFLAGS) $< -o $@
-# macOS host tool (NATIVE-OBJECTS-001 live read): clang, ad-hoc signed with the debugger entitlement.
-objread: build/objread
-build/objread: objread.c debugger-entitlement.plist | build
-	clang -O2 -Wall $< -o $@
-	codesign -s - -f --entitlements debugger-entitlement.plist $@
-# memread (NATIVE-PATH-002 live read of fixed static-data ranges): same signing.
-memread: build/memread
-build/memread: memread.c debugger-entitlement.plist | build
-	clang -O2 -Wall $< -o $@
-	codesign -s - -f --entitlements debugger-entitlement.plist $@
-# lightread (NATIVE-LIGHT-001 live read of the model lighting inputs): same signing.
-lightread: build/lightread
-build/lightread: lightread.c debugger-entitlement.plist | build
-	clang -O2 -Wall $< -o $@
-	codesign -s - -f --entitlements debugger-entitlement.plist $@
-.PHONY: all objread memread lightread
-# langread (NATIVE-LANG-001 live read of the Lang.mpr tables main.exe built): same signing.
-langread: build/langread
-build/langread: langread.c debugger-entitlement.plist | build
-	clang -O2 -Wall $< -o $@
-	codesign -s - -f --entitlements debugger-entitlement.plist $@
-.PHONY: langread
+# The read-only live-state readers (objread, memread, lightread, langread) used to validate the
+# native reconstruction moved to the native repository (fryezero/mu-the-matrix-native, live-readers/).
+.PHONY: all

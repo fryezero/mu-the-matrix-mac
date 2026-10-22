@@ -1,6 +1,6 @@
 # A separate 32-bit CrossOver startup path
 
-Issue [#39](https://github.com/fryezero/mu-the-matrix-recovery/issues/39),
+Issue [#39](https://github.com/fryezero/mu-the-matrix-native/issues/39),
 MAC-CROSSOVER-001, adds authored setup under `mac-play/`. This is a compatibility
 path for the original installed client. It does not implement a native game or
 change the gameplay acceptance gates in `../roadmap.md`.
@@ -210,7 +210,7 @@ native Windows equivalence and native macOS gameplay are still unverified.
 
 ## Settings and display-state recovery, MAC-CROSSOVER-002
 
-Issue [#42](https://github.com/fryezero/mu-the-matrix-recovery/issues/42)
+Issue [#42](https://github.com/fryezero/mu-the-matrix-native/issues/42)
 adds a guarded startup reset and a synthetic monitor check. The owner reports
 pressing GAME START, logging in and playing in `MuMatrix32`. That is supplied
 compatibility-gameplay evidence, not a native macOS build or an independent
@@ -356,7 +356,7 @@ integration; both contributions and their current test counts are preserved.
 
 ## Reproducible setup kit, MAC-KIT-001
 
-Issue [#63](https://github.com/fryezero/mu-the-matrix-recovery/issues/63) publishes the owner's
+Issue [#63](https://github.com/fryezero/mu-the-matrix-native/issues/63) publishes the owner's
 local mu-mac-kit as `mac-play/installer/` (`setup-mu-mac.sh`, `verify-mu-mac.sh`, `play-mu.sh`,
 `lib/mukit.sh`, `registry/mu-mac.reg`, `tests/`), based on main `6f4344d`. It is an alternative to
 `setup-crossover-32bit.sh` (MAC-CROSSOVER-001), not a replacement: it reproduces the layout of the

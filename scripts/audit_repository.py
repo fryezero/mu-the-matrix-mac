@@ -7,24 +7,35 @@ import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PRIVATE_DIRS = {'input','evidence','runtime','vendor','publish','dist','node_modules','__pycache__'}
-GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
+GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmg','.xz','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
 
 
-# Owner-requested README screenshots and GIFs. Only these exact reviewed bytes
-# are documentation media; all other binary/generated inputs remain rejected.
+# Owner-requested README screenshots (reviewed 2026-10-21: window-only, no account
+# names, passwords or private paths). Only these exact bytes are documentation media;
+# all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
-    'docs/media/login-live-vs-native.png':
-        'ac965b789b734d5168b4b6b601afb3155899c6004b1d9c1dee279f6c119a2865',
-    'docs/media/character-select-live-vs-native.png':
-        '00c14a89064c9bfbf7ffb553b2d7b32d4a938304fb1ec9498dabab6b3103a0bc',
-    'docs/media/lorencia-live-before-after.png':
-        'dd2e01a1002711a71c2fc522e97c5b3f122987292be29c95aa9f4deed7c5071e',
-    'docs/media/native-inventory.png':
-        'c042bc9f805760d13c501208e11fcbc28b7d9d3f83a171ad1f8f86d664fa3262',
-    'docs/media/native-login.gif':
-        '16d98398477a6f7e1193b6095056ffc3c68eb01ef359dca99d325f412150c4a2',
-    'docs/media/native-character-select.gif':
-        'e9700a171e2441af775d0369f40293ec196b7a8f6f6ab07fb1d25d0474721de2',
+    'docs/images/01-hero-in-game-lorencia-fps.jpg':
+        'af769235cd19c69dfa76c82916f562318bbfbaca7671c37041df2b4a13d8dff4',
+    'docs/images/02-dmg-window.png':
+        '912e7188791bf14129e5bae31ceea815867c4d3dd3657195e6fed04372dc184c',
+    'docs/images/03-gatekeeper-not-opened.png':
+        'e4490859ea5be08e8c8c3496b0418330ebab01287c765fc3a25295e8d7b59fec',
+    'docs/images/04-move-to-applications.png':
+        'a89ed274b0ae24a85902d68b5c8e766af59a15c4bdb40348c887cd12933199cf',
+    'docs/images/05-welcome-install.png':
+        '6ef4e3e3685a82b2ba8e700c45eb61850b48c662944630596cc1cb9965391c02',
+    'docs/images/06-install-progress.png':
+        'aa8665348c1d04528ea230f1e748204ddc1a18fb7088c3332f5db50190b98b42',
+    'docs/images/07-official-launcher.png':
+        '18502b90dee65358736d124bc31cc0ddeef1b0e3eaf4e59d17e2c35af987c051',
+    'docs/images/08-character-select.jpg':
+        '610ab86a01ab82da87addc2ac71c985d51c292c51e91f1368f0a690b71081c5b',
+    'docs/images/09-in-game-twisted-karutan.jpg':
+        '9d793f7515c4d047cf47ca13f8193c2b4769152454c5742484336fa92576c8c7',
+    'docs/images/10-in-game-tormenta-hunting.jpg':
+        'f1d78046da999d61acab2890dafaf2eca29824bbc93d203c4f92507fac70ae37',
+    'docs/images/11-app-settings.png':
+        'c820da9857052664881ad3c12f458af2f618740c6653250545a260fae0fd5f8f',
 }
 
 
