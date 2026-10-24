@@ -1,7 +1,7 @@
 # Crowded rendering work, MAC-PERF-011
 
-Measured 2026-10-23 on Apple M5, macOS 27.0.1 build 26A434, the free CodeWeavers-source Wine 26.3 runtime,
-Apple OpenGL 2.1 Metal - 91.7. This is an offline rendering investigation. No game session, credentials,
+Measured 2026-10-23 on Apple M5, macOS 27.0.1 build 26A434, the free Wine runtime built from CrossOver 26.3 sources
+(`wine --version`: `wine-11.0`), Apple OpenGL 2.1 Metal - 91.7. This is an offline rendering investigation. No game session, credentials,
 server or protection module was used. The player's prefix and installed DLL were not changed.
 
 ## Changes
