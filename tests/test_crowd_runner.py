@@ -31,7 +31,9 @@ if sys.argv[1] == 'wineboot':
     (prefix / 'system.reg').write_text('#arch=win32\\n'); sys.exit(0)
 frames,batches,vertices,scene,probes,width,height,buffers = map(int,sys.argv[2:])
 hash_ = 'changed' if probes and os.getenv('FAKE_CROWD_MISMATCH') else 'same'
-late = bool(os.getenv('FAKE_CROWD_LATE'))
+late = bool(os.getenv('FAKE_CROWD_LATE') or (os.getenv('FAKE_CROWD_BASELINE_LATE') and Path(sys.argv[1]).parent.name == '0'))
+if os.getenv('MUGL_STATS'):
+    (prefix / 'drive_c/mutools' / os.environ['MUGL_STATS'].split(chr(92))[-1]).write_text('mugl loaded')
 print(json.dumps(dict(frames=frames,batches=batches,vertices=vertices,scene=scene,probes=probes,
 buffers=buffers,buffer_lifecycle_ok=0 if os.getenv('FAKE_CROWD_LIFECYCLE_FAIL') else 1,
 width=width,height=height,median_ms=35 if late else 12,p95_ms=45 if late else 15,
@@ -40,7 +42,9 @@ over_40ms=3 if late else 0,framebuffer_hash=hash_,drawn=frames*batches,culled=0,
         self.server.write_text(f'#!{sys.executable}\n' + '''
 from pathlib import Path
 import os
+import sys
 assert (Path(os.environ['WINEPREFIX']) / '.mu-crowd-owner').exists()
+if '-k' in sys.argv and os.getenv('FAKE_CROWD_SERVER_ABSENT'): sys.exit(1)
 ''')
         self.compiler.write_text(f'#!{sys.executable}\n' + '''
 from pathlib import Path
@@ -91,6 +95,31 @@ Path(sys.argv[sys.argv.index('-o')+1]).write_text('synthetic compiler output')
         report = json.loads((self.out / 'summary.json').read_text())
         self.assertFalse(report['completed'])
         self.assertFalse((self.out / 'prefix').exists())
+
+    def test_same_culling_algorithm_on_both_variants(self):
+        result = self.run_case(['--cull-probes', '1'])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads((self.out / 'summary.json').read_text())
+        self.assertEqual([r['probes'] for r in report['results']], [1, 1, 1, 1])
+        self.assertEqual([r['variant'] for r in report['results']], [0, 1, 1, 0])
+
+    def test_absent_server_after_early_failure_still_cleans_up(self):
+        result = self.run_case(extra_env={'FAKE_CROWD_VERSION_FAIL': '1', 'FAKE_CROWD_SERVER_ABSENT': '1'})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('check_output', result.stderr)
+        self.assertNotIn('During handling', result.stderr)
+        self.assertFalse((self.out / 'prefix').exists())
+
+    def test_budget_uses_proxy_variant_when_both_enable_culling_probes(self):
+        proxies = [self.root / 'old.dll', self.root / 'new.dll']
+        for p in proxies:
+            p.write_text('authored proxy fixture')
+        result = self.run_case(['--cull-probes', '1', '--proxies', *map(str, proxies), '--require-budget'],
+                               {'FAKE_CROWD_BASELINE_LATE': '1'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads((self.out / 'summary.json').read_text())
+        self.assertTrue(report['completed'] and report['optimized_p95_within_40ms'])
+        self.assertEqual([r['p95_ms'] for r in report['results']], [45, 15, 15, 45])
 
     def test_version_failure_still_cleans_up(self):
         result = self.run_case(extra_env={'FAKE_CROWD_VERSION_FAIL': '1'})

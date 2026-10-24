@@ -28,6 +28,8 @@ def main():
     parser.add_argument('--vertices', type=int, default=690)
     parser.add_argument('--size', type=int, nargs=2, default=[1280, 800], metavar=('WIDTH', 'HEIGHT'))
     parser.add_argument('--buffers', type=int, default=0, help='Named buffers updated per mesh, 0..4096')
+    parser.add_argument('--cull-probes', type=int, choices=[0, 1],
+                        help='Use this visibility algorithm on both variants; default compares old/new')
     parser.add_argument('--proxies', type=Path, nargs=2, metavar=('BASELINE_DLL', 'OPTIMIZED_DLL'),
                         help='Optional authored synthetic proxy builds; enables full+vbo in the disposable prefix')
     parser.add_argument('--require-budget', action='store_true', help='Exit 3 if any optimized p95 exceeds 40 ms')
@@ -55,9 +57,11 @@ def main():
         if key.startswith(('TIMEWALKER_', 'CX_', 'MUGL_')) or key in ('DYLD_INSERT_LIBRARIES', 'WINELOADER', 'WINESERVER'):
             del env[key]
 
-    def run(command, name, command_env=env, timeout=120):
+    def run(command, name, command_env=env, timeout=120, accepted=(0,)):
         with (out / (name + '.out')).open('w') as stdout, (out / (name + '.err')).open('w') as stderr:
-            subprocess.run(command, env=command_env, stdout=stdout, stderr=stderr, check=True, timeout=timeout)
+            result = subprocess.run(command, env=command_env, stdout=stdout, stderr=stderr, timeout=timeout)
+            if result.returncode not in accepted:
+                raise subprocess.CalledProcessError(result.returncode, command)
 
     results = []
     summary = {'completed': False, 'source': 'synthetic-renderer-only', 'started_utc': datetime.now(timezone.utc).isoformat(),
@@ -93,14 +97,15 @@ def main():
         for scene in args.scenes:
             for batches in args.batches:
                 case = []
-                for round_index, probes in enumerate([0, 1, 1, 0]):  # ABBA limits order bias
-                    name = f'{scene}-{batches}-{round_index}-{probes}'
+                for round_index, variant in enumerate([0, 1, 1, 0]):  # ABBA limits order bias
+                    probes = variant if args.cull_probes is None else args.cull_probes
+                    name = f'{scene}-{batches}-{round_index}-{variant}'
                     load = os.getloadavg() if hasattr(os, 'getloadavg') else None
                     command_env = dict(env)
                     if proxies:
                         command_env['WINEDLLOVERRIDES'] = 'opengl32=n,b;mscoree,mshtml='
                         command_env['MUGL_STATS'] = 'C:\\mutools\\' + name + '.log'
-                    run([str(wine), str(binaries[probes]), str(args.frames), str(batches), str(args.vertices),
+                    run([str(wine), str(binaries[variant]), str(args.frames), str(batches), str(args.vertices),
                          str(SCENES[scene]), str(probes), *map(str, args.size), str(args.buffers)], name, command_env)
                     if proxies:
                         stats = prefix / 'drive_c/mutools' / (name + '.log')
@@ -108,7 +113,7 @@ def main():
                             raise RuntimeError(f'{name}: proxy load not verified')
                         shutil.copy2(stats, out / (name + '.proxy.log'))
                     result = json.loads((out / (name + '.out')).read_text())
-                    result.update(scene_name=scene, load_average=load, round=round_index)
+                    result.update(scene_name=scene, load_average=load, round=round_index, variant=variant)
                     if result['gl_error'] or result['frames'] != args.frames or (args.buffers and not result.get('buffer_lifecycle_ok')):
                         raise RuntimeError(f'{name}: invalid GL run')
                     case.append(result)
@@ -120,13 +125,14 @@ def main():
                         summary['equivalent'] = False
                         raise RuntimeError(f'{scene}/{batches}: {key} differs across paths')
         summary['completed'] = True
-        summary['optimized_p95_within_40ms'] = all(r['p95_ms'] <= 40 for r in results if r['probes'])
+        summary['optimized_p95_within_40ms'] = all(r['p95_ms'] <= 40 for r in results if r['variant'] == 1)
     finally:
         summary['ended_utc'] = datetime.now(timezone.utc).isoformat()
         (out / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         if marker.is_file() and marker.read_text() == 'mu-crowd-synthetic-v1\n':
             # Only this newly created prefix. Never use global process-name shutdown.
-            run([str(server), '-k'], 'cleanup-stop', timeout=20)
+            # Exit 1 also occurs with no server, e.g. compilation failed before startup.
+            run([str(server), '-k'], 'cleanup-stop', timeout=20, accepted=(0, 1))
             run([str(server), '-w'], 'cleanup-wait', timeout=20)
             shutil.rmtree(prefix)
     return 3 if args.require_budget and not summary.get('optimized_p95_within_40ms') else 0

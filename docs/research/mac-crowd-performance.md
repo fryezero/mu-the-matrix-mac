@@ -128,3 +128,8 @@ Local evidence is ignored under `runtime/crowd/`, `runtime/crowd-abba/`, `runtim
 The private culling integration checks are under `runtime/private-cull-regression/`.
 The private candidate remains at ignored `mac-play/hotpatch/build/private/opengl32.dll` and was not installed.
 No DLL, raw log or prefix is committed.
+
+## Follow-up
+
+The [2026-10-24 investigation](mac-crowd-followup.md) includes an isolated live check of this candidate and further
+rendering experiments. Its light portal-area scene settled at the cap; crowded combat remains unverified.
