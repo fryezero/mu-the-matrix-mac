@@ -7,8 +7,9 @@
    clamping, and user clip planes only remove more). A vertex counts as outside only with a relative margin of 1e-5,
    computed in double precision from the same float inputs, so rounding differences to the GPU cannot turn a
    rejected vertex into a visible one. The first vertex is tested first: a batch whose first vertex is inside every
-   plane is drawn after one transform; otherwise the 8 corners of the batch's bounding box are tested, and the batch
-   is dropped when all corners are outside one plane (then so is every vertex).
+   plane is drawn after one transform. For batches of at least 128 vertices, the middle and last vertex are
+   also probed before scanning the whole bounding box. An inside sample keeps the batch and avoids that scan.
+   Otherwise the 8 corners of the full box are tested; all corners outside one plane permit dropping the batch.
 
    The matrices are read with glGetFloatv only after a change: every matrix call (translate, rotate, scale, multiply,
    load, ortho, frustum, load identity, pop, display lists, matrix extensions) advances mx_epoch, and so does every
@@ -40,14 +41,6 @@ static void cull_check(const Vtx *v, int n)
     st_cv_checked++; cv_tot_checked++;
     if (r) { st_cv_bad++; cv_tot_bad++; if (st_file && cv_tot_bad <= 10) fprintf(st_file, "cull verify: culled batch of %d vertices produced %u samples\n", n, r); }
 }
-static unsigned cull_code(const float *p)
-{
-    const double *m = mx_mvp; double c[4];
-    for (int r = 0; r < 4; r++) c[r] = m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r];
-    double e = 1e-5 * (1.0 + fabs(c[0]) + fabs(c[1]) + fabs(c[3]));
-    return (unsigned)(c[0] > c[3] + e) | (unsigned)(c[0] < -c[3] - e) << 1 | (unsigned)(c[1] > c[3] + e) << 2 |
-           (unsigned)(c[1] < -c[3] - e) << 3 | (unsigned)(c[3] < -e) << 4;
-}
 /* 1 = vb[0..n) cannot produce a fragment. */
 static int cull_batch(const Vtx *v, int n)
 {
@@ -61,16 +54,7 @@ static int cull_batch(const Vtx *v, int n)
         mx_seen = mx_epoch;
     }
     st_cull_tested++;
-    if (!cull_code(v[0].v)) return 0;   /* first vertex inside every plane: visible candidate, drawn */
-    /* bounding box of the positions (lanes 1..3 of the load at n[2] hold v[0..2]); the batch is culled when all 8
-       corners lie outside one plane, which implies every vertex does */
-    __m128 lo = _mm_loadu_ps(&v[0].n[2]), hi = lo, bad = _mm_cmpunord_ps(lo, lo);
-    for (int i = 1; i < n; i++) { __m128 p = _mm_loadu_ps(&v[i].n[2]); lo = _mm_min_ps(lo, p); hi = _mm_max_ps(hi, p); bad = _mm_or_ps(bad, _mm_cmpunord_ps(p, p)); }
-    if (_mm_movemask_ps(bad) & 14) return 0;   /* a NaN position: leave the batch to GL */
-    float l[4], h[4]; _mm_storeu_ps(l, lo); _mm_storeu_ps(h, hi);
-    unsigned all = 31;
-    for (int k = 0; all && k < 8; k++) { float c[3] = {k & 1 ? h[1] : l[1], k & 2 ? h[2] : l[2], k & 4 ? h[3] : l[3]}; all &= cull_code(c); }
-    if (!all) return 0;
+    if (!mugl_cull_geometry(mx_mvp, v, n, 1)) return 0;
     st_cull_batches++; st_cull_verts += n;
     if (cull_verify && (st_cull_batches & 15) == 1) cull_check(v, n);
     return 1;

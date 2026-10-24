@@ -364,12 +364,15 @@ class V74Tests(unittest.TestCase):
         self.assertIn('cs_dirty ||',self.body(self.mugl,'static void update_busy(void)'))
 
     def test_culling_uses_x_y_and_w_planes_with_margin_and_fresh_matrices(self):
-        code = self.body(self.cull,'static unsigned cull_code(const float *p)')
+        probes = (SOURCE/'cull_probe.h').read_text()
+        geometry = (SOURCE/'cull_geometry.h').read_text()
+        code = self.body(probes,'static unsigned mugl_clip_code(const double *m, const float *p)')
         self.assertIn('double e = 1e-5 * (1.0 + fabs(c[0]) + fabs(c[1]) + fabs(c[3]));',code)
         self.assertNotIn('c[2]',code.split('double e')[1])   # no near/far planes
         batch = self.body(self.cull,'static int cull_batch(const Vtx *v, int n)')
-        self.assertIn('if (!cull_code(v[0].v)) return 0;',batch)
-        self.assertIn('if (_mm_movemask_ps(bad) & 14) return 0;',batch)
+        self.assertIn('!mugl_clip_code(m, v[0].v)',geometry)
+        self.assertIn('if (_mm_movemask_ps(bad) & 14) return 0;',geometry)
+        self.assertIn('if (!mugl_cull_geometry(mx_mvp, v, n, 1)) return 0;',batch)
         self.assertIn('if (mx_seen != mx_epoch || mx_always)',batch)
         self.assertIn('if (batch_mode == GL_TRIANGLES && cull_batch(vb, vcount))',self.mugl)
         # the epoch advances after the real matrix call (a flush inside the call re-reads the old matrix)

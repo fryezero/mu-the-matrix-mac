@@ -1221,3 +1221,9 @@ opengl32's hashes with the proxy loaded (`--dll opengl32=n,b`; without it CrossO
 comparison was meaningless). Not established: Windows-native behavior, other hosts, the warp window and
 first-sight loads in a busy town, corrupt or truncated JPEG files (they fall back to the client's decoder, but the
 fallback decision rests on turbo reporting an error or warning), the purpose of the file-checksum code (not analysed).
+
+
+## MAC-PERF-011: crowded rendering
+
+See [the crowded-rendering report](mac-crowd-performance.md) for buffer lookup and visibility-scan changes,
+ABBA Wine stress measurements, the cases that still exceed 40 ms, and current validation limits.

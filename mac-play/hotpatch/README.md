@@ -12,6 +12,14 @@ decoding for the client's IJG 6b (`jpeg.c`, `jpegdec.c`, libjpeg-turbo) and a na
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
+## Crowded rendering candidate (MAC-PERF-011)
+
+The GL-only changes replace linear named-buffer lookups with fixed indexes and avoid full visibility scans when
+another sampled vertex is inside the view. The existing buffer rows, capacities and deletion/reuse behavior stay
+intact. There are no new game hooks or changes to gameplay, the frame cap, protection modules or packet handling.
+[Measurements and limits](../../docs/research/mac-crowd-performance.md) include successful and failing 40 ms stress cases.
+The synthetic benchmark does not establish live combat FPS. These changes have not been deployed to the player app.
+
 ## Build without private client inputs
 
 ```sh
