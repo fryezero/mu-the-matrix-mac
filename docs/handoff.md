@@ -1,5 +1,13 @@
 # Continue from here (Wine track)
 
+## Follow-up profiling, MAC-PERF-012 (2026-10-24)
+
+Further full-quality rendering alternatives did not show a consistent gain over the existing zero-copy path and
+were removed. An isolated live old/new check at Tormenta Island 128,120 settled at 25 FPS, including the zoomed
+view, but this was a light scene. The extreme synthetic workload remains over 40 ms. The disposable game copy was
+removed and the player installation is unchanged. Retained code fixes improve benchmark comparisons and cleanup.
+See [the follow-up evidence](research/mac-crowd-followup.md).
+
 ## Crowded rendering, MAC-PERF-011 (2026-10-23)
 
 GL-only changes index named buffers and avoid some full visibility scans. The authored Wine stress test uses

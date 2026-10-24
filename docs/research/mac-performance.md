@@ -1227,3 +1227,8 @@ fallback decision rests on turbo reporting an error or warning), the purpose of 
 
 See [the crowded-rendering report](mac-crowd-performance.md) for buffer lookup and visibility-scan changes,
 ABBA Wine stress measurements, the cases that still exceed 40 ms, and current validation limits.
+
+## MAC-PERF-012: further crowded-rendering investigation
+
+[Follow-up measurements](mac-crowd-followup.md) record rejected alternatives, a corrected zero-copy baseline,
+the isolated live check, and benchmark fixes. No additional renderer optimization was retained in this round.
