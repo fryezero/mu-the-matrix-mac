@@ -65,7 +65,9 @@ static int time_mode; static long long tm_ticks[11]; static long tm_calls[11];
 static const char *tm_names[11] = {"draw", "arrays", "clientattrib", "popattrib", "enable", "bindtex", "swap", "pack", "meshloop", "meshtotal", "shadow"};
 #define TIMED(slot, stmt) do { if (time_mode) { LARGE_INTEGER t0_, t1_; QueryPerformanceCounter(&t0_); stmt; QueryPerformanceCounter(&t1_); tm_ticks[slot] += t1_.QuadPart - t0_.QuadPart; tm_calls[slot]++; } else { stmt; } } while (0)
 
-typedef struct { GLfloat t[2], c[4], n[3], v[3]; } Vtx;
+#include "cull_geometry.h"
+#include "id_index.h"
+typedef MuglCullVertex Vtx;
 typedef char vtx_layout_check[(sizeof(Vtx) == 48 && offsetof(Vtx, v) == 36) ? 1 : -1];
 static int zero_copy_full;   /* hotpatch bit 2048: draw T2F_C4F_N3F_V3F batches straight from vb */
 static int strided_arrays, owned_strided;   /* hotpatch bit 4096: all batch formats read vb in place (stride 48) */
@@ -806,12 +808,15 @@ void WINAPI mugl_glGetBooleanv(GLenum p, GLboolean *v) { query_prep(p); R(glGetB
    allocates a new block and keeps the old one), so previously specified pointers stay valid. */
 typedef struct { GLuint id; unsigned char *data; size_t size, cap; GLenum usage; int real_stale; } Shadow;
 static Shadow shadows[8192]; static int nshadows;
+static MuglIdEntry shadow_index[16384];
 static GLuint bind_stack[16][2]; static int bind_sp;
 static Shadow *shadow_of(GLuint id, int create)
 {
     if (!id) return NULL;
-    for (int i = 0; i < nshadows; i++) if (shadows[i].id == id) return &shadows[i];
+    int row = mugl_id_find(shadow_index, 16384, id);
+    if (row >= 0) return &shadows[row];
     if (!create || nshadows >= 8192) return NULL;
+    if (!mugl_id_insert(shadow_index, 16384, id, nshadows)) return NULL;
     Shadow *s = &shadows[nshadows++]; memset(s, 0, sizeof *s); s->id = id; return s;
 }
 static void shadow_reserve(Shadow *s, size_t size)
@@ -898,11 +903,15 @@ void WINAPI mugl_glPopClientAttrib(void)
 /* ---- buffer objects: orphan whole-buffer updates to avoid GPU sync stalls ---- */
 typedef struct { GLuint id; GLsizeiptr size; GLenum usage; } BufInfo;
 static BufInfo bufs[4096]; static int nbufs;
+static MuglIdEntry buffer_index[8192];
 static void *real_bufdata, *real_bufsub;
 static BufInfo *buf_info(GLuint id, int create)
 {
-    for (int i = 0; i < nbufs; i++) if (bufs[i].id == id) return &bufs[i];
+    if (!id) return NULL;
+    int row = mugl_id_find(buffer_index, 8192, id);
+    if (row >= 0) return &bufs[row];
     if (!create || nbufs >= 4096) return NULL;
+    if (!mugl_id_insert(buffer_index, 8192, id, nbufs)) return NULL;
     bufs[nbufs].id = id; bufs[nbufs].size = -1; bufs[nbufs].usage = 0; return &bufs[nbufs++];
 }
 static int tgt_index(GLenum t) { return t == 0x8892 ? 0 : t == 0x8893 ? 1 : -1; }

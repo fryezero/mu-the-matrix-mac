@@ -1,5 +1,15 @@
 # Continue from here (Wine track)
 
+## Crowded rendering, MAC-PERF-011 (2026-10-23)
+
+GL-only changes index named buffers and avoid some full visibility scans. The authored Wine stress test uses
+fresh disposable prefixes, ABBA runs and output hashes. In a 2,048-buffer, 12,000-small-draw workload, median
+work fell 40.01 -> 31.85 ms and frames above 40 ms fell 64/120 -> 0/120. Larger combined cases still exceed
+40 ms. This is synthetic rendering evidence, not live combat FPS; no player install was changed.
+The private candidate also built with native JPEG support and passed a separate Wine rendering comparison.
+The local macOS merge gate passed. See [measurements and reproduction](research/mac-crowd-performance.md).
+Next: controlled crowded-gameplay validation before player distribution.
+
 ## Repository split (REPO-SPLIT-001, 2026-10-21)
 
 This repository was split out of `fryezero/mu-the-matrix-recovery` (renamed to `mu-the-matrix-native`) with
