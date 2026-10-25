@@ -20,3 +20,6 @@ WINE REGISTRY Version 2
 
 [Software\\Classes\\CLSID\\{25336920-03F9-11CF-8FD0-00AA00686F13}\\MiscStatus] 1
 @="2228625"
+
+[Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts] 1
+"Twemoji Mozilla (TrueType)"="TwemojiMozilla.ttf"

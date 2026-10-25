@@ -51,7 +51,7 @@ APPQ := "$(APP)"
 SOURCES := Sources/Core.swift Sources/FirstRun.swift Sources/main.swift
 RESOURCES := mu-launch.sh ../installer/lib/mukit.sh ../fast-x87.sh
 INSTALLER_FILES := ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh \
-	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg
+	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg ../installer/fonts/Twemoji-Mozilla.md
 STAMP := $(B)/.app-stamp
 VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)|$(EMBED_FAST_X87)|$(EMBED_RUNTIME)
 
@@ -97,6 +97,8 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 	cp ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh $(APPQ)/Contents/Resources/installer/
 	cp ../installer/lib/mukit.sh $(APPQ)/Contents/Resources/installer/lib/
 	cp ../installer/registry/mu-mac.reg $(APPQ)/Contents/Resources/installer/registry/
+	mkdir -p $(APPQ)/Contents/Resources/installer/fonts
+	cp ../installer/fonts/Twemoji-Mozilla.md $(APPQ)/Contents/Resources/installer/fonts/
 	@if [ -n "$(EMBED_MUGL)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MUGL)" $(APPQ)/Contents/Resources/dlls/opengl32.dll && echo "bundled mugl $(EMBED_MUGL)"; fi
 	@if [ -n "$(EMBED_FAST_X87)" ]; then mkdir -p $(APPQ)/Contents/Resources/fast-x87 && \
 	  for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md SOURCE.txt; do \

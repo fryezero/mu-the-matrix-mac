@@ -98,3 +98,9 @@ contain client-derived bytes and are not part of the repository.
 The Mu The Matrix client, launcher, game data and server belong to their owners and are not covered by this
 repository's license. Nothing in this repository grants rights to them. Players install the game from the official
 installer or their own copy.
+# Launcher emoji font
+
+The installer can download and install the unchanged Twemoji Mozilla font from Mozilla's pinned source.
+Twemoji artwork is licensed under CC BY 4.0, and Mozilla's font-building code is Apache License 2.0.
+Attribution and license links accompany the installation in `mac-play/installer/fonts/Twemoji-Mozilla.md`.
+Font binaries are not part of this source repository. See `docs/research/mac-launcher-emoji.md` for provenance.

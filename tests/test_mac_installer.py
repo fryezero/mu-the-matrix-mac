@@ -71,7 +71,7 @@ class InstallerPinsAndOptions(unittest.TestCase):
         self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V77_SHA256', 'MUKIT_MUGL_V76_SHA256', 'MUKIT_MUGL_V76J_SHA256', 'MUKIT_MUGL_V75_SHA256', 'MUKIT_MUGL_V72_SHA256',
                                      'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256', 'MUKIT_MSCOREE_PROXY_V2_SHA256', 'MUKIT_MSCOREE_PROXY_V1_SHA256',
                                      'MUKIT_DOTNET48_INSTALLER_SHA256', 'MUKIT_RT_CX24_ENGINE_SHA256', 'MUKIT_RT_TEMPLATE_SHA256',
-                                     'MUKIT_WINETRICKS_SHA256'})
+                                     'MUKIT_WINETRICKS_SHA256', 'MUKIT_EMOJI_FONT_SHA256'})
         self.assertEqual(len(set(pins.values())), len(pins))
         for name, digest in pins.items():
             with self.subTest(pin=name):

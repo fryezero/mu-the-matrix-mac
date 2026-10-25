@@ -1,5 +1,15 @@
 # Current status (Wine track)
 
+## Launcher news emoji restored, 2026-10-25
+
+MAC-APP-008 replaces the missing-glyph boxes in news titles with the original colored emoji. The tested fix installs
+Mozilla's verified COLR/CPAL vector font in the Wine prefix; raster emoji fonts did not work in this browser.
+Setup, Verify, the selected MTM app and the local launcher repair kit now include the fix and attribution.
+See [font provenance and live evidence](research/mac-launcher-emoji.md).
+The final fresh launch showed colored news symbols and enabled START in 12.7 seconds. The prefix reports
+35 PASS, 2 optional-tool WARN and 0 FAIL. Local CI passed 136 Python tests, 369 installer checks, 268 app checks,
+Mac/MinGW builds and the publication audit. Owned launcher tests are closed; the owner can reopen normally.
+
 ## Launcher artwork/news restored after reinstall, 2026-10-25
 
 MAC-APP-007 fixes the Windows MU launcher's blank artwork/news panel. The fresh prefix lacked full Wine mshtml

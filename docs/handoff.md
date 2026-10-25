@@ -1,5 +1,19 @@
 # Continue from here (Wine track)
 
+## Launcher news emoji (MAC-APP-008, 2026-10-25)
+
+Read [`research/mac-launcher-emoji.md`](research/mac-launcher-emoji.md). The boxes are missing Unicode emoji.
+Use the pinned Mozilla Twemoji COLR/CPAL font; both Noto bitmap candidates supplied glyph IDs but failed in the actual
+browser and were removed. Setup registers the font through the normal registry step, installs its verified bytes and
+attribution, and skips an intact installation. Its fallback download cache stays outside signed app resources.
+The selected MTM app includes the font and updated installer. `Launcher Patches/Fix MU Launcher.command` repairs both
+the embedded browser and news icons. Tests distinguish a matching file from missing, tampered or unregistered files.
+Final fresh-launch capture confirms the colored news symbols and enabled START, with a passing browser probe,
+in 12.7 seconds. Prefix verification reports 35 PASS, 2 optional-tool WARN and 0 FAIL. Local CI passed 136 Python
+tests, 369 installer checks, 268 app checks, Mac/MinGW builds and audit. Both font copies match the pin; game and
+Windows launcher hashes are unchanged. Owned launchers are closed and the shared lock is released.
+Next: the owner can launch the installed MTM app normally.
+
 ## Blank Windows launcher after reinstall (MAC-APP-007, 2026-10-25)
 
 Read [`research/mac-launcher-browser.md`](research/mac-launcher-browser.md). Initial wineboot disables mshtml;
