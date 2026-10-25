@@ -102,6 +102,8 @@ mo=$(mukit_dll_override "$UREG" mscoree)
 mukit_loadorder_eq "${mo:-}" native && out PASS 'override mscoree' 'native' || out FAIL 'override mscoree' "${mo:-unset} (winetricks dotnet48 sets native)"
 pn=$(mukit_reg_value "$SREG" 'Software\Microsoft\Windows NT\CurrentVersion' ProductName 2>/dev/null)
 case "$pn" in *"Windows 10"*) out PASS 'Windows version' "$pn" ;; *) out WARN 'Windows version' "${pn:-unknown} (working bottle: Windows 10)" ;; esac
+if mukit_browser_registered "$SREG"; then out PASS 'launcher web browser' 'Wine mshtml fully registered'
+else out FAIL 'launcher web browser' 'Wine mshtml registration incomplete (launcher news/artwork can be blank); rerun setup or Repair'; fi
 
 # ------------------------------------------------------------------ registry
 section registry

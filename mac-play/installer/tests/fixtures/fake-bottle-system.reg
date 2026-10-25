@@ -14,3 +14,9 @@ WINE REGISTRY Version 2
 [Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug] 1
 "Auto"="0"
 "Debugger"=""
+
+[Software\\Microsoft\\Internet Explorer\\AboutURLs] 1
+"blank"="res://mshtml.dll/blank.htm"
+
+[Software\\Classes\\CLSID\\{25336920-03F9-11CF-8FD0-00AA00686F13}\\MiscStatus] 1
+@="2228625"

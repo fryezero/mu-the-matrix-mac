@@ -202,6 +202,16 @@ mukit_reg_value() {
     mukit_reg_norm "$raw"
 }
 
+# Wine creates the basic HTMLDocument COM class even when wineboot skips mshtml.
+# These mshtml.inf values require its full DllRegisterServer step. Without it the
+# launcher's WebBrowser can fail to instantiate and leave the whole news area blank.
+mukit_browser_registered() {
+    local blank misc
+    blank=$(mukit_reg_value "$1" 'Software\Microsoft\Internet Explorer\AboutURLs' blank) || return 1
+    misc=$(mukit_reg_value "$1" 'Software\Classes\CLSID\{25336920-03F9-11CF-8FD0-00AA00686F13}\MiscStatus' @) || return 1
+    [ "$blank" = 'res://mshtml.dll/blank.htm' ] && [ "$misc" = 2228625 ]
+}
+
 # Load-order strings compare without spaces ("native, builtin" == "native,builtin").
 mukit_loadorder_eq() { [ "$(printf '%s' "$1" | tr -d ' ' | tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$2" | tr -d ' ' | tr '[:upper:]' '[:lower:]')" ]; }
 

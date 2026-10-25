@@ -1232,3 +1232,13 @@ ABBA Wine stress measurements, the cases that still exceed 40 ms, and current va
 
 [Follow-up measurements](mac-crowd-followup.md) record rejected alternatives, a corrected zero-copy baseline,
 the isolated live check, and benchmark fixes. No additional renderer optimization was retained in this round.
+
+## Local file consolidation, 2026-10-25
+
+The Wine repository and its supporting patch files now live in `~/Documents/MTM/Mac Optimizations`.
+[`CONTENTS.md`](../../CONTENTS.md) maps current source, earlier DLL builds, private tables, decoder dependencies,
+fast-x87 source/package and the packaged Wine runtime. Existing files were moved and verified by hash and metadata;
+compatibility symlinks preserve the previous paths. This organization change does not alter an installed game or
+establish any new performance result.
+`make test` passed from the new path with all 128 Python tests and the installer/app suites; eight relocated local
+helpers passed syntax and canonical-path checks. The repository audit and whitespace check passed.

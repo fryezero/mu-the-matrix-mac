@@ -1,5 +1,27 @@
 # Continue from here (Wine track)
 
+## Blank Windows launcher after reinstall (MAC-APP-007, 2026-10-25)
+
+Read [`research/mac-launcher-browser.md`](research/mac-launcher-browser.md). Initial wineboot disables mshtml;
+setup must register it after .NET. `mukit_browser_registered` checks entries supplied by full mshtml registration,
+not just the base HTMLDocument COM class. Missing registration runs `regsvr32.exe /s mshtml.dll`; verify flags it.
+The owner's selected app is `~/Documents/MTM/MTM/Mu The Matrix.app`; its embedded installer was updated.
+`Launcher Patches/` holds canonical links and local repair/rollback tools. The older Downloads app was restored
+after the owner clarified which copy was used. Game executables, the v3 DLL and the official skin are unchanged.
+The selected startup helper passed a cold launch to visible artwork/news and enabled START. The 132 Python tests,
+354 installer checks, 268 app checks, Mac/MinGW builds and audit passed. Registry rollback and private captures are
+under `Launcher Patches/`; the shared game lock is released and owned launcher sessions are closed.
+
+## Local consolidation, 2026-10-25
+
+Use `~/Documents/MTM/Mac Optimizations`, the existing repository renamed from `mu-the-matrix-mac`.
+[`../CONTENTS.md`](../CONTENTS.md) maps the patch source and ignored `Local Files/` inputs/builds.
+The owner requires one checkout per project; use the existing checkout for future work. Compatibility paths are
+symlinks. Live tests use the shared lock documented in `Local Files/mu-mac-tools/GAME-LOCK.md`.
+The move and links were verified; `make test`, helper syntax/path checks, `git diff --check` and the repository
+audit passed. Details remain in ignored `Local Files/MOVE-MANIFEST.json`, `PATH-UPDATES.json` and
+`verification-make-test.log`. Current code and historical local builds are identified separately in `CONTENTS.md`.
+
 ## Follow-up profiling, MAC-PERF-012 (2026-10-24)
 
 Further full-quality rendering alternatives did not show a consistent gain over the existing zero-copy path and
@@ -23,7 +45,7 @@ Next: controlled crowded-gameplay validation before player distribution.
 This repository was split out of `fryezero/mu-the-matrix-recovery` (renamed to `mu-the-matrix-native`) with
 `git filter-repo` over `mac-play/`, `docs/research/mac-*.md` (except `mac-runtime.md`, the QEMU code-capture note,
 which stayed native), the Wine-track tests and the shared repository files, so `git log --follow` works. Local
-checkout: `~/Documents/mu-the-matrix-mac`. Differences from the old layout: `make test` here runs only this track's
+checkout: `~/Documents/MTM/Mac Optimizations`. Differences from the old layout: `make test` here runs only this track's
 checks; `scripts/local-macos-ci.sh` also builds the development app, machprof and (with MinGW) mugl out of tree, the
 hotpatch DLL and the diagnostics; the live-state readers (`objread`, `memread`, `lightread`, `langread`) moved to the
 native repository's `live-readers/`; the app icon script is duplicated there for the Native Preview app. README
