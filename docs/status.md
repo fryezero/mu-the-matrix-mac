@@ -1,5 +1,26 @@
 # Current status (Wine track)
 
+## Launcher artwork/news restored after reinstall, 2026-10-25
+
+MAC-APP-007 fixes the Windows MU launcher's blank artwork/news panel. The fresh prefix lacked full Wine mshtml
+registration despite having the v3 proxy and official skin. Registration restored the live page; setup now repairs
+it after .NET and verification checks it. The selected MTM Mac app's embedded installer was updated.
+Launcher patches, repair commands and local rollback files are gathered in `Launcher Patches/`.
+See [the finding](research/mac-launcher-browser.md).
+Verified artwork/news and enabled START after a cold launch. Local CI passed 132 Python tests, 354 installer checks,
+268 app checks, Mac/MinGW builds and the publication audit. The fixed prefix reports 33 PASS, 2 optional-tool WARN,
+0 FAIL. No account login or combat test was needed.
+
+## Local consolidation, 2026-10-25
+
+The single Wine checkout is now `~/Documents/MTM/Mac Optimizations`. Current patch source, earlier local builds,
+private tables, profiling tools, fast-x87 dependencies and the packaged Wine runtime are together there.
+See [`../CONTENTS.md`](../CONTENTS.md). Files were moved, with old paths retained as symlinks; no checkout was copied.
+The native port and installed games retain their locations. Full visual quality remains required.
+Verification: moved files retained their hashes and metadata, compatibility links resolve, eight relocated helpers
+pass shell syntax/path checks, and `make test` passed from the folder with spaces, including all 128 Python tests
+and the installer/app suites. The repository audit reported zero rejections. No live game test was run.
+
 ## Follow-up profiling, MAC-PERF-012 (2026-10-24)
 
 Further full-quality rendering alternatives did not show a consistent gain over the existing zero-copy path and

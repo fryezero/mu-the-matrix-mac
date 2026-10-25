@@ -1,5 +1,10 @@
 # mu-mac-kit: play Mu The Matrix on an Apple Silicon Mac
 
+Fresh-install launcher artwork/news fix (MAC-APP-007): setup registers Wine's embedded browser after .NET.
+Verify reports `launcher web browser`; incomplete mshtml registration can leave the content area black even with
+the current v3 proxy and official skin. Rerun setup or the app's Repair to restore it.
+[Finding and checks](../../docs/research/mac-launcher-browser.md).
+
 Repository path: `mac-play/installer/` (MAC-KIT-001, issue #63; free runtime MAC-FREE-001). The kit sets up the
 original Windows client in a new 32-bit Wine prefix with everything the hand-built `MuMatrix32` bottle has
 (.NET 4.8 launcher, mugl OpenGL batching proxy, matching resolution lists for the launcher and the game).

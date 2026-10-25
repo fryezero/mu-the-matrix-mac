@@ -1,7 +1,7 @@
 #!/bin/bash
 # Static tests for mu-mac-kit. Never touches real bottles or a real CrossOver: integration tests run
 # against a synthetic bottle under a temp MUKIT_BOTTLES_DIR and a stub CX_ROOT, and never invoke wine
-# (all Wine-backed steps are pre-satisfied in the fake registry). All DLLs are synthetic stand-ins whose
+# (Wine-backed steps are pre-satisfied or handled by a synthetic registration stub). All DLLs are synthetic stand-ins whose
 # SHA-256 pins are injected through the MUKIT_*_SHA256 test overrides; no game or client-derived file
 # is needed. Runs on macOS (bash 3.2) and Linux. Usage: tests/test-mukit.sh
 set -u
@@ -276,6 +276,47 @@ grep -q 'v7.7 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.7' |
 grep -q 'PASS  mugl-hotpatch.txt *380460463' "$TMPD/verify.log" && ok 'verify: 380460463 is the norm' || bad 'verify: 380460463 is the norm'
 grep -q 'PASS  mscoree proxy *v3, with the macOS window fix and the WIC stream fix' "$TMPD/verify.log" && ok 'verify accepts the v3 mscoree proxy' || bad 'verify accepts the v3 mscoree proxy'
 grep -q 'PASS  launcher skin *official skin active (Template.design .*kept: Template.design.disabled Template.design.disabled.2 Template.design.disabled.bak' "$TMPD/verify.log" && ok 'verify reports the active official skin and the kept copies' || bad 'verify reports the active official skin and the kept copies'
+
+echo '# launcher browser: missing registration, repair failure, repair and idempotence'
+grep -q '^PASS  launcher web browser' "$TMPD/verify.log" && ok 'verify reports registered browser' || bad 'verify reports registered browser'
+cp "$FB/system.reg" "$TMPD/browser-registered.reg"
+sedi 's/^"blank"=/"missing-blank"=/' "$FB/system.reg"
+before=$(snap)
+"$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/browser-missing.log" 2>&1; rc=$?
+eq 'verify FAILs missing browser registration' "$rc" 1
+grep -q '^FAIL  launcher web browser' "$TMPD/browser-missing.log" && ok 'verify names missing browser registration' || bad 'verify names missing browser registration'
+eq 'browser verification is read-only' "$(snap)" "$before"
+"${SETUP[@]}" --dry-run > "$TMPD/browser-dry.log" 2>&1; rc=$?
+eq 'browser repair dry-run exit 0' "$rc" 0
+grep -q 'regsvr32.exe /s mshtml.dll' "$TMPD/browser-dry.log" && ok 'dry-run plans mshtml registration' || bad 'dry-run plans mshtml registration'
+eq 'browser repair dry-run changes nothing' "$(snap)" "$before"
+cp "$FAKECX/bin/wine" "$TMPD/wine-before-browser-test"
+cp "$FAKECX/bin/wineserver" "$TMPD/server-before-browser-test"
+cat > "$FAKECX/bin/wine" <<'EOF'
+#!/bin/sh
+[ "$1" = --bottle ] && [ "$3" = regsvr32.exe ] && [ "$4" = /s ] && [ "$5" = mshtml.dll ] || exit 99
+printf '%s\n' "$*" >> "$MUKIT_BROWSER_TRACE"
+[ "${MUKIT_BROWSER_FAIL:-0}" = 0 ] || exit 42
+cp "$MUKIT_BROWSER_FIXTURE" "$MUKIT_BOTTLES_DIR/$2/system.reg"
+EOF
+printf '#!/bin/sh\n[ "$1" = -w ]\n' > "$FAKECX/bin/wineserver"
+chmod 755 "$FAKECX/bin/wine" "$FAKECX/bin/wineserver"
+export MUKIT_BROWSER_FIXTURE="$TMPD/browser-registered.reg" MUKIT_BROWSER_TRACE="$TMPD/browser-calls"
+MUKIT_BROWSER_FAIL=1 "${SETUP[@]}" > "$TMPD/browser-fail.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && ok 'failed browser registration stops setup' || bad 'failed browser registration stops setup'
+no 'failed browser registration remains missing' mukit_browser_registered "$FB/system.reg"
+"${SETUP[@]}" > "$TMPD/browser-repair.log" 2>&1; rc=$?
+eq 'missing browser registration repaired' "$rc" 0
+yes 'repaired browser registration is complete' mukit_browser_registered "$FB/system.reg"
+eq 'browser repair uses the selected bottle' "$(tail -1 "$MUKIT_BROWSER_TRACE")" '--bottle FakeKit regsvr32.exe /s mshtml.dll'
+calls=$(wc -l < "$MUKIT_BROWSER_TRACE")
+"${SETUP[@]}" > "$TMPD/browser-again.log" 2>&1; rc=$?
+eq 'registered browser rerun exit 0' "$rc" 0
+eq 'registered browser skips Wine registration' "$(wc -l < "$MUKIT_BROWSER_TRACE")" "$calls"
+mv "$TMPD/wine-before-browser-test" "$FAKECX/bin/wine"
+mv "$TMPD/server-before-browser-test" "$FAKECX/bin/wineserver"
+unset MUKIT_BROWSER_FIXTURE MUKIT_BROWSER_TRACE
+
 # MAC-APP-004: the v1 proxy (no window fix) is recognised and flagged; winfix.log is reported.
 cp "$G/mscoree.dll" "$TMPD/mscoree.keep"; mkdll "$G/mscoree.dll" mscoree-v1
 printf 'C:\\MuTheMatrix\\MuTheMatrix.exe: window fix on\r\n  WIC stream fix armed\r\n  WIC stream fix on\r\n  WIC stream fix used (first decoder hr=0x00000000)\r\n  tray icon hook on\r\n' > "$FB/drive_c/mutools/winfix.log"

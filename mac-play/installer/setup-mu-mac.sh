@@ -654,6 +654,17 @@ apply_winver() {
     steplog winver winetricks_bottle win10 || mukit_die 'winetricks win10 failed'
 }
 
+# wineboot deliberately skips mshtml to suppress install prompts before .NET. Register
+# it afterwards; the bundled Gecko runtime cannot provide the news panel on its own.
+check_browser() {
+    mukit_browser_registered "$PREFIX/system.reg" && { skip 'launcher web browser registered'; return 0; }
+    return 1
+}
+apply_browser() {
+    todo 'register Wine mshtml for the launcher news and artwork panel'
+    steplog browser wine_bottle regsvr32.exe /s mshtml.dll || mukit_die 'launcher web browser registration failed'
+}
+
 # --- 5. registry -------------------------------------------------------------
 check_registry() {
     local f k n v c file got missing=0
@@ -1114,7 +1125,7 @@ run_step() {   # run_step LABEL NAME  (check_NAME / apply_NAME)
 main() {
     preflight
     hook_ac_variant
-    local n=12; [ "$RUNTIME" = free ] && n=14
+    local n=13; [ "$RUNTIME" = free ] && n=15
     if [ "$RUNTIME" = free ]; then
         run_step "1/$n free Wine runtime" runtime
         step_runtime_current
@@ -1123,7 +1134,7 @@ main() {
     else
         run_step "1/$n bottle (win10 template, WineArch=win32)" bottle
     fi
-    local i=$(( n - 11 ))
+    local i=$(( n - 12 ))
     # Registry first: AeDebug must be off before anything that could crash (the .NET installer
     # included); winedbg once killed the game's threads.
     run_step "$((i + 1))/$n registry (AeDebug off, overrides)" registry
@@ -1134,14 +1145,15 @@ main() {
         wineserver_wait   # flush the registry to disk first
         if ! check_registry; then apply_registry; fi
     fi
-    run_step "$((i + 4))/$n game files" game
-    run_step "$((i + 5))/$n launcher .NET config" launcher_config
-    say "== $((i + 6))/$n C:\\mutools";             step_mutools
-    say "== $((i + 7))/$n LauncherOption.if";      step_launcher_options
-    say "== $((i + 8))/$n proxy DLLs";            step_dlls
-    run_step "$((i + 9))/$n launcher skin" skin    # after the DLLs: depends on the installed mscoree proxy
-    if [ "$RUNTIME" = free ]; then say "== $((i + 10))/$n fast x87 and Desktop launcher"; step_fast_x87_free; step_desktop
-    else say "== $((i + 10))/$n Desktop launcher"; step_desktop; fi
+    run_step "$((i + 4))/$n launcher web browser" browser
+    run_step "$((i + 5))/$n game files" game
+    run_step "$((i + 6))/$n launcher .NET config" launcher_config
+    say "== $((i + 7))/$n C:\\mutools";             step_mutools
+    say "== $((i + 8))/$n LauncherOption.if";      step_launcher_options
+    say "== $((i + 9))/$n proxy DLLs";            step_dlls
+    run_step "$((i + 10))/$n launcher skin" skin    # after the DLLs: depends on the installed mscoree proxy
+    if [ "$RUNTIME" = free ]; then say "== $((i + 11))/$n fast x87 and Desktop launcher"; step_fast_x87_free; step_desktop
+    else say "== $((i + 11))/$n Desktop launcher"; step_desktop; fi
     say "== $n/$n verify"
     local vargs=(--bottle "$BOTTLE"); [ "$RUNTIME" = free ] && vargs=(--runtime free --prefix "$PREFIX")
     if [ "$DRY_RUN" = 1 ]; then
