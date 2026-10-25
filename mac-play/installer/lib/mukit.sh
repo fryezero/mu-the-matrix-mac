@@ -52,6 +52,10 @@ MUKIT_MSCOREE_PROXY_V1_SHA256=${MUKIT_MSCOREE_PROXY_V1_SHA256:-6f2d2acea2a48eb78
 MUKIT_CX263_OPENGL32_SHA256=0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56
 MUKIT_DOTNET48_INSTALLER_SHA256=${MUKIT_DOTNET48_INSTALLER_SHA256:-95889d6de3f2070c07790ad6cf2000d33d9a1bdfc6a381725ab82ab1c314fd53}
 MUKIT_DOTNET48_RELEASE_MIN=528040   # NDP\v4\Full Release for .NET 4.8 (0x80eb1 = 528049 observed)
+# Mozilla's unchanged COLR/CPAL emoji font. Bitmap-only emoji fonts are not usable by
+# the Wine Gecko fallback path measured here; see mac-launcher-emoji.md.
+MUKIT_EMOJI_FONT_SHA256=${MUKIT_EMOJI_FONT_SHA256:-6d90152ee0d29e82fe2a87793af5aa4b7ad13e6538360889e141e81ed299ee8e}
+MUKIT_EMOJI_FONT_URL=https://raw.githubusercontent.com/mozilla/gecko-dev/bcb0701db5c25bec5cf82b12586f6ff6660ff535/browser/fonts/TwemojiMozilla.ttf
 
 # mukit_dotnet48_state PREFIX -> prints "ok RELEASE VERSION" or "missing REASON"; returns 0 only for a
 # real Microsoft .NET 4.8 install. A fresh CrossOver bottle already registers NDP\v4\Full
@@ -212,6 +216,13 @@ mukit_browser_registered() {
     [ "$blank" = 'res://mshtml.dll/blank.htm' ] && [ "$misc" = 2228625 ]
 }
 
+mukit_emoji_font_installed() {
+    local value
+    [ "$(mukit_sha256 "$1/drive_c/windows/Fonts/TwemojiMozilla.ttf")" = "$MUKIT_EMOJI_FONT_SHA256" ] || return 1
+    value=$(mukit_reg_value "$1/system.reg" 'Software\Microsoft\Windows NT\CurrentVersion\Fonts' 'Twemoji Mozilla (TrueType)') || return 1
+    [ "$value" = TwemojiMozilla.ttf ]
+}
+
 # Load-order strings compare without spaces ("native, builtin" == "native,builtin").
 mukit_loadorder_eq() { [ "$(printf '%s' "$1" | tr -d ' ' | tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$2" | tr -d ' ' | tr '[:upper:]' '[:lower:]')" ]; }
 
@@ -235,6 +246,7 @@ user|Software\Wine\AppDefaults\main.exe\DllOverrides|opengl32|native,builtin|ord
 user|Software\Wine\AppDefaults\MuTheMatrix.exe\DllOverrides|mscoree|native|order
 system|Software\Microsoft\Windows NT\CurrentVersion\AeDebug|Auto|0|eq
 system|Software\Microsoft\Windows NT\CurrentVersion\AeDebug|Debugger||eq
+system|Software\Microsoft\Windows NT\CurrentVersion\Fonts|Twemoji Mozilla (TrueType)|TwemojiMozilla.ttf|eq
 EOF
     [ "${1:-1}" = 0 ] || printf '%s\n' 'user|Environment|MUGL_STATS|C:\mutools\mugl-stats.txt|eq'
 }

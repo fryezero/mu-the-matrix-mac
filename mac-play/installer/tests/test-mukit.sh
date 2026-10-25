@@ -21,6 +21,10 @@ printf '#!/bin/sh\nexit 1\n' > "$TMPD/nopgrep/pgrep"; chmod 755 "$TMPD/nopgrep/p
 mkdll "$DLLS/mugl-v77.dll" v77; mkdll "$DLLS/mugl-v76.dll" v76; mkdll "$DLLS/mugl-v75.dll" v75; mkdll "$DLLS/mugl-v72.dll" v72; mkdll "$DLLS/mugl-v71.dll" v71; mkdll "$DLLS/mugl-v70.dll" v70
 mkdll "$DLLS/mscoree.dll" 'mscoree with the WIC stream fix'   # carries the marker the kit looks for (wicfix.c)
 mkdll "$DLLS/ndp48.exe" dotnet
+printf 'authored synthetic emoji font' > "$TMPD/TwemojiMozilla.ttf"
+MUKIT_EMOJI_FONT_FILE="$TMPD/TwemojiMozilla.ttf"
+MUKIT_EMOJI_FONT_SHA256=$(mukit_sha256 "$MUKIT_EMOJI_FONT_FILE")
+export MUKIT_EMOJI_FONT_FILE MUKIT_EMOJI_FONT_SHA256
 FAKECX="$TMPD/CrossOver"; mkdir -p "$FAKECX/bin" "$FAKECX/lib/wine/i386-windows"
 for b in cxbottle wine wineserver; do printf '#!/bin/sh\necho "stub %s: should not run in tests" >&2\nexit 99\n' "$b" > "$FAKECX/bin/$b"; chmod 755 "$FAKECX/bin/$b"; done
 mkbuiltin "$FAKECX/lib/wine/i386-windows/opengl32.dll" stand-in
@@ -276,6 +280,32 @@ grep -q 'v7.7 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.7' |
 grep -q 'PASS  mugl-hotpatch.txt *380460463' "$TMPD/verify.log" && ok 'verify: 380460463 is the norm' || bad 'verify: 380460463 is the norm'
 grep -q 'PASS  mscoree proxy *v3, with the macOS window fix and the WIC stream fix' "$TMPD/verify.log" && ok 'verify accepts the v3 mscoree proxy' || bad 'verify accepts the v3 mscoree proxy'
 grep -q 'PASS  launcher skin *official skin active (Template.design .*kept: Template.design.disabled Template.design.disabled.2 Template.design.disabled.bak' "$TMPD/verify.log" && ok 'verify reports the active official skin and the kept copies' || bad 'verify reports the active official skin and the kept copies'
+
+echo '# launcher news emoji: font bytes, notices, repair and signed-app-safe cache'
+yes 'emoji font installed and registered' mukit_emoji_font_installed "$FB"
+yes 'emoji attribution installed' test -f "$FB/drive_c/mutools/licenses/Twemoji-Mozilla.md"
+grep -q '^PASS  launcher news icons' "$TMPD/verify.log" && ok 'verify accepts the emoji font' || bad 'verify accepts the emoji font'
+FONT_DST="$FB/drive_c/windows/Fonts/TwemojiMozilla.ttf"
+printf 'tampered font' > "$FONT_DST"
+no 'tampered emoji font rejected' mukit_emoji_font_installed "$FB"
+"$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/font-verify.log" 2>&1
+grep -q '^WARN  launcher news icons' "$TMPD/font-verify.log" && ok 'verify warns about the broken emoji font' || bad 'verify warns about the broken emoji font'
+before=$(snap)
+env -u MUKIT_EMOJI_FONT_FILE MUKIT_FONT_CACHE_DIR="$TMPD/font-cache" "${SETUP[@]}" --dry-run > "$TMPD/font-cache.log" 2>&1; rc=$?
+eq 'font download dry-run exit 0' "$rc" 0
+grep -q "download .*TwemojiMozilla.ttf -> $TMPD/font-cache/" "$TMPD/font-cache.log" && ok 'font cache stays outside installer/app resources' || bad 'font cache stays outside installer/app resources'
+eq 'font download dry-run changes nothing' "$(snap)" "$before"
+printf 'untrusted source font' > "$TMPD/bad-font.ttf"
+MUKIT_EMOJI_FONT_FILE="$TMPD/bad-font.ttf" "${SETUP[@]}" > "$TMPD/font-bad.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && ok 'wrong source font stops setup' || bad 'wrong source font stops setup'
+grep -q 'does not match its pinned SHA-256' "$TMPD/font-bad.log" && ok 'wrong source font names its failed pin' || bad 'wrong source font names its failed pin'
+"${SETUP[@]}" > "$TMPD/font-repair.log" 2>&1; rc=$?
+eq 'broken managed font repair exit 0' "$rc" 0
+yes 'managed font repaired' mukit_emoji_font_installed "$FB"
+before=$(snap)
+"${SETUP[@]}" > "$TMPD/font-again.log" 2>&1; rc=$?
+eq 'emoji font rerun exit 0' "$rc" 0
+eq 'emoji font rerun preserves files' "$(snap)" "$before"
 
 echo '# launcher browser: missing registration, repair failure, repair and idempotence'
 grep -q '^PASS  launcher web browser' "$TMPD/verify.log" && ok 'verify reports registered browser' || bad 'verify reports registered browser'

@@ -1,5 +1,12 @@
 # mu-mac-kit: play Mu The Matrix on an Apple Silicon Mac
 
+Launcher news icons (MAC-APP-008): setup installs the unchanged Twemoji Mozilla vector color font and its
+attribution. This replaces missing-glyph boxes in news titles with the page's original Unicode emoji.
+The pinned font SHA-256 is `6d90152ee0d29e82fe2a87793af5aa4b7ad13e6538360889e141e81ed299ee8e`.
+A bundled `fonts/TwemojiMozilla.ttf` is used first; `MUKIT_EMOJI_FONT_FILE` supplies an offline copy with that same
+hash. Otherwise it downloads the pinned Mozilla file to `~/Library/Caches/MuTheMatrix/fonts/`, outside the signed
+app bundle. `MUKIT_FONT_CACHE_DIR` can select another cache folder. The font and registration are checked by Verify.
+
 Fresh-install launcher artwork/news fix (MAC-APP-007): setup registers Wine's embedded browser after .NET.
 Verify reports `launcher web browser`; incomplete mshtml registration can leave the content area black even with
 the current v3 proxy and official skin. Rerun setup or the app's Repair to restore it.
