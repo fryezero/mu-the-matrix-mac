@@ -36,6 +36,8 @@ EOF
 chmod 755 "$FAKECX/bin/wine" "$FAKECX/bin/wineserver"
 STUBBIN="$TMPD/stubbin"; mkdir -p "$STUBBIN"
 printf '#!/bin/sh\n[ -n "${MU_TEST_RUNNING:-}" ] && exit 0\nexit 1\n' > "$STUBBIN/pgrep"; chmod 755 "$STUBBIN/pgrep"
+# sw_vers: a test may pretend a macOS build (MU_TEST_BUILD); everything else goes to the real one.
+printf '#!/bin/sh\nif [ "$1" = -buildVersion ] && [ -n "${MU_TEST_BUILD:-}" ]; then echo "$MU_TEST_BUILD"; exit 0; fi\nexec /usr/bin/sw_vers "$@"\n' > "$STUBBIN/sw_vers"; chmod 755 "$STUBBIN/sw_vers"
 
 BOTTLES="$TMPD/Bottles"
 mkbottle() {   # NAME ARCH [nogame] [nomodes]
@@ -219,6 +221,68 @@ has 'free: x87 only for main.exe' "$D" 'TIMEWALKER_X87_ONLY=main.exe'
 MU_FAST_X87=1 L --run > /dev/null; sleep 1
 eq 'free: x87 env at start'     "$(cat "$REC/fx.env" 2>/dev/null)" "main.exe|$FX/x87-main-only-wrapper|$RTD/wine/lib/wine/x86_64-unix/wine"
 eq 'free: MU_BOTTLE alone keeps CrossOver' "$(MU_BOTTLE=Good L --check | grep -c 'CrossOver')" 1
+has 'free: no probe -> no self-check said' "$(MU_FAST_X87=1 L --check)" 'fast x87 has no self-check'
+hasnt 'free: no probe -> nothing recorded' "$(ls "$FX")" validated
+
+echo '# free runtime: fast x87 self-check after macOS/Rosetta changes (WINE-FASTX87-002)'
+# Synthetic Rosetta files and probe; runtime_loader prints what the real one prints when MU_TEST_X87=pass.
+ROS="$TMPD/rosetta"; mkdir -p "$ROS"; echo 'rosetta 1' > "$ROS/libRosettaRuntime"; echo 'runtime 1' > "$ROS/runtime"
+export MU_ROSETTA_FILES="$ROS/libRosettaRuntime:$ROS/runtime" MU_TEST_BUILD=26B123
+printf '#!/bin/bash\necho "x87 smoke: PASS (synthetic)"\n' > "$FX/x87-smoke"; chmod 755 "$FX/x87-smoke"
+mv "$FX/runtime_loader" "$FX/runtime_loader.env"
+cat > "$FX/runtime_loader" <<'EOS'
+#!/bin/bash
+echo run >> "$MU_TEST_REC/selfcheck.calls"
+case "${MU_TEST_X87:-pass}" in
+    pass) echo 'RosettaRuntimex87 built  - Rosetta Version 0x0'; "$1" ;;
+    inactive) "$1" ;;
+    crash) echo 'Bus error'; exit 138 ;;
+esac
+EOS
+chmod 755 "$FX/runtime_loader"
+calls() { wc -l < "$REC/selfcheck.calls" 2>/dev/null | tr -d ' ' || echo 0; }
+X=$(MU_FAST_X87=1 L --check)
+has 'x87 check: passes'          "$X" 'fast x87 self-check passed on macOS 26B123'
+has 'x87 check: fast x87 on'     "$X" 'fast x87 on'
+eq 'x87 check: ran once'         "$(calls)" 1
+has 'x87 check: identity recorded' "$(head -1 "$FX/validated" 2>/dev/null)" 26B123
+has 'x87 check: log kept'        "$(cat "$TMPD/logs/fast-x87-check.log")" 'x87 smoke: PASS'
+X=$(MU_FAST_X87=1 L --check)
+hasnt 'x87 check: cached'        "$X" 'self-check passed'
+eq 'x87 check: not rerun'        "$(calls)" 1
+eq 'x87 check: plain start skips it' "$(MU_FAST_X87=0 L --check >/dev/null; calls)" 1
+MU_FAST_X87=1 L --run > /dev/null; sleep 1
+has 'x87 check: wine log names ARPL line' "$(cat "$TMPD/logs/wine-prefix.log")" "refusing to patch' line below is the optional ARPL patch, not fast x87"
+has 'x87 check: wine log says checked' "$(cat "$TMPD/logs/wine-prefix.log")" 'fast x87 on (self-check passed for macOS 26B123)'
+# A macOS update: new build and a new libRosettaRuntime. The dry run plans the check and changes nothing.
+echo 'rosetta 2' > "$ROS/libRosettaRuntime"; export MU_TEST_BUILD=26C100
+D=$(MU_FAST_X87=1 L --dry-run)
+has 'x87 update: dry run plans the check' "$D" "MU-PLAN fast x87 self-check (macOS 26C100, Rosetta or the translator changed): $FX/runtime_loader $FX/x87-smoke"
+eq 'x87 update: dry run runs nothing' "$(calls)" 1
+X=$(MU_TEST_X87=inactive MU_FAST_X87=1 L --check)
+has 'x87 update: inactive translator said' "$X" 'fast x87 needs revalidation after a macOS update: its self-check failed on macOS 26C100'
+has 'x87 update: names the command' "$X" "$LAUNCH --fast-x87-check"
+has 'x87 update: plain Rosetta'  "$X" 'fast x87 off'
+eq 'x87 update: start still ok'  "$(MU_TEST_X87=inactive MU_FAST_X87=1 code --check)" 0
+eq 'x87 update: two tries, then remembered' "$(calls)" 3
+[ ! -e "$FX/validated" ] && [ -f "$FX/failed" ] && ok 'x87 update: validated dropped, failure kept' || bad 'x87 update: validated dropped, failure kept'
+D=$(MU_FAST_X87=1 L --dry-run)
+has 'x87 update: dry run plans plain wine' "$D" "$RTD/wine/bin/wine MuTheMatrix.exe"
+hasnt 'x87 update: no wrapper planned' "$D" "x87-main-only-wrapper MuTheMatrix.exe"
+eq 'x87 update: failure not retried' "$(calls)" 3
+MU_FAST_X87=1 L --run > /dev/null; sleep 1
+has 'x87 update: wine log says off' "$(cat "$TMPD/logs/wine-prefix.log")" '== fast x87 off'
+X=$(MU_TEST_X87=crash L --fast-x87-check)
+has 'x87 recheck: crash is a failure' "$X" 'needs revalidation after a macOS update'
+eq 'x87 recheck: forced rerun'   "$(calls)" 5
+has 'x87 recheck: crash logged'  "$(cat "$TMPD/logs/fast-x87-check.log")" 'exit 138'
+X=$(L --fast-x87-check)
+has 'x87 recheck: passes again'  "$X" 'fast x87 self-check passed on macOS 26C100'
+has 'x87 recheck: fast x87 on'   "$X" 'fast x87 on'
+[ -f "$FX/validated" ] && [ ! -e "$FX/failed" ] && ok 'x87 recheck: validated again' || bad 'x87 recheck: validated again'
+echo 'translator 2' >> "$FX/libRuntimeRosettax87"
+has 'x87 update: new translator rechecked' "$(MU_FAST_X87=1 L --check)" 'self-check passed'
+unset MU_ROSETTA_FILES MU_TEST_BUILD
 
 echo '# app bundle'
 APP="$TMPD/build/Mu The Matrix.app"   # own build directory: never replaces a build/ made with custom defaults

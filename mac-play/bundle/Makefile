@@ -19,7 +19,8 @@
 #   EMBED_MUGL=/path/opengl32.dll  EMBED_MSCOREE=/path/mscoree.dll   (none by default; never commit them.
 #   A private mugl build contains client-derived bytes: distributing it is the server owner's decision.)
 #   EMBED_FAST_X87=/dir  rosetta-timewalker translator from ../installer/packaging/package-fast-x87.sh (MIT); the
-#   authored main.exe-only wrapper (../x87-main-only-wrapper.c) is compiled into Resources/fast-x87 with it.
+#   authored main.exe-only wrapper (../x87-main-only-wrapper.c) is compiled into Resources/fast-x87 with it, and
+#   so is the authored x86_64 self-check probe (../x87-smoke.c) that mu-launch.sh runs after a macOS update.
 #   EMBED_RUNTIME=/path/winecx-26.3.0-mu1.tar.xz  the Wine runtime (../installer/packaging/build-wine.sh, LGPL-2.1+;
 #   name and SHA-256 pinned in Sources/Core.swift, RuntimeFile). Bundled in Resources/runtime with its COPYING.LIB
 #   and licenses/wine-runtime-SOURCES.txt; the app installs it with --runtime-archive, so players download no runtime.
@@ -104,6 +105,7 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 	  for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md SOURCE.txt; do \
 	    [ ! -f "$(EMBED_FAST_X87)/$$f" ] || cp "$(EMBED_FAST_X87)/$$f" $(APPQ)/Contents/Resources/fast-x87/; done && \
 	  xcrun clang -arch arm64 -O2 -o $(APPQ)/Contents/Resources/fast-x87/x87-main-only-wrapper ../x87-main-only-wrapper.c && \
+	  xcrun clang -arch x86_64 -std=c11 -O2 -o $(APPQ)/Contents/Resources/fast-x87/x87-smoke ../x87-smoke.c && \
 	  echo "bundled fast x87 $(EMBED_FAST_X87)"; fi
 	@if [ -n "$(EMBED_MSCOREE)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MSCOREE)" $(APPQ)/Contents/Resources/dlls/mscoree.dll && echo "bundled mscoree $(EMBED_MSCOREE)"; fi
 	@if [ -n "$(EMBED_RUNTIME)" ]; then rt=$(APPQ)/Contents/Resources/runtime && mkdir -p "$$rt" && \

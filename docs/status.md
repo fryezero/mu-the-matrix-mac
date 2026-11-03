@@ -1,5 +1,17 @@
 # Current status (Wine track)
 
+## Fast x87 checked on macOS 27.2, self-check after updates, 2026-11-03
+
+WINE-FASTX87-002: after the macOS 27.0 → 27.2 update, the owner's free-runtime app still selects fast x87, and the
+pinned `ab1a6a03` translator still works. Both Rosetta UUIDs changed. The upstream FLD probe passes, and
+`fp_x87.exe` runs at 2.1–2.3 Mverts/s plain against 221–234 Mverts/s fast, with the same checksum. Live in Lorencia
+(1280x800, mugl mask 380460463, load 6–7, same session) both runs held the 25 fps cap. mugl's frame work was
+16.5 ms with fast x87 and 37.4 ms plain (median of 38 two-second intervals). The scary
+`refusing to patch` line in Wine logs is the optional ARPL patch. The free runtime never self-checked fast x87; now
+`mu-launch.sh` runs an authored x86_64 probe through the translator whenever macOS, Rosetta or the translator
+changes, falls back to plain Rosetta on failure, and logs "fast x87 needs revalidation after a macOS update …".
+See [the self-check](research/mac-free-runtime.md#self-check-after-macos-updates-wine-fastx87-002-2026-11-03).
+
 ## Launcher news emoji restored, 2026-10-25
 
 MAC-APP-008 replaces the missing-glyph boxes in news titles with the original colored emoji. The tested fix installs
