@@ -1,5 +1,20 @@
 # Continue from here (Wine track)
 
+## Fast x87 after macOS updates (WINE-FASTX87-002, 2026-11-03)
+
+Read [`research/mac-free-runtime.md`](research/mac-free-runtime.md#self-check-after-macos-updates-wine-fastx87-002-2026-11-03).
+The owner's app is `~/Documents/MTM/MTM/Mu The Matrix.app` with the free runtime; its `mu-launch.sh` gates fast x87
+on file presence only, so the CrossOver-only `validated` cache under `~/Library/Caches` never applied (it does not
+exist; CrossOver is gone). On 27.2 the pin works (probe, `fpbench`, live work time 16.5 vs 37.4 ms). The
+"fast-x87 refuses this macOS" note of 2026-10-28 was the ARPL message. New: `mu-launch.sh` self-check
+(`fast_x87_free_identity` / `fast_x87_free_selfcheck` in `mac-play/fast-x87.sh`, probe `mac-play/x87-smoke.c`,
+`--fast-x87-check`), shipped by the bundle Makefile and setup. `play-mu.sh` (the setup's Desktop launcher)
+still uses file presence only. Checks run: `bash scripts/local-macos-ci.sh`, a real-translator check against a
+scratch free home (pass, cache, simulated inactive translator, recovery). Next: the owner rebuilds/updates the app
+(`make player-app …`) to get the self-check. If a future macOS breaks the pin, the log line says so; check upstream
+[rosettax87_jit](https://github.com/Lifeisawful/rosettax87_jit) (4 commits after the embedded `a44f1eff` as of
+2026-11-03, including loader detach fixes) for a supporting change.
+
 ## Launcher news emoji (MAC-APP-008, 2026-10-25)
 
 Read [`research/mac-launcher-emoji.md`](research/mac-launcher-emoji.md). The boxes are missing Unicode emoji.

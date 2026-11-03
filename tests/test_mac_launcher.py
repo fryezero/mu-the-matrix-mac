@@ -182,7 +182,14 @@ esac
         result, events, _ = self.run_launcher('"services.exe","24","Console","1","0 K"', installed=True, stale=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('fast|', events)
-        self.assertIn('stale', result.stdout)
+        self.assertIn('Fast x87 needs revalidation after a macOS update', result.stdout)
+        self.assertIn('run mac-play/install-fast-x87.sh --bottle', result.stdout)
+
+    def test_missing_install_says_not_installed(self):
+        result, events, _ = self.run_launcher('"services.exe","24","Console","1","0 K"')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Fast x87 is not installed or not validated', result.stdout)
+        self.assertNotIn('revalidation', result.stdout)
 
     def test_modified_build_output_falls_back(self):
         result, events, _ = self.run_launcher('"services.exe","24","Console","1","0 K"', installed=True, modified=True)

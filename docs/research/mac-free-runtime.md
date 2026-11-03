@@ -95,6 +95,48 @@ by `packaging/package-fast-x87.sh`) and builds the wrapper. The app bundles them
 `EMBED_FAST_X87=…`. Fast x87 depends on undocumented Rosetta internals: a macOS update can stop it from working.
 Players can then turn it off in the app.
 
+### Self-check after macOS updates (WINE-FASTX87-002, 2026-11-03)
+
+Until WINE-FASTX87-002 the free runtime turned fast x87 on whenever its files existed. It never checked that the
+translator still worked; only the CrossOver path had a `validated` identity. Now `mu-launch.sh` keeps
+`$MUKIT_FREE_HOME/fast-x87/validated` (macOS build, cksums of `libRosettaRuntime`, Rosetta's `runtime`, the four
+translator files, the inner loader and the probe). When that identity changes, the launcher first runs the authored
+x86_64 probe `mac-play/x87-smoke.c` (`fast-x87/x87-smoke`: FLD m32, FSQRT+FADD, FISTP and an 80-bit
+`long double` loop, all exact in double precision) through `runtime_loader`. It needs both
+`RosettaRuntimex87 built` and `x87 smoke: PASS`, gets two tries of 20 s and takes about 0.4 s. A cached start adds
+about 0.05 s. On failure the game starts with plain Rosetta, `failed` records that identity (no retry on every start),
+and the log says `fast x87 needs revalidation after a macOS update: its self-check failed on macOS BUILD (log …);
+using plain Rosetta. … run: …/mu-launch.sh --fast-x87-check`. The app builds the probe into
+`Resources/fast-x87`; setup copies it, or compiles it when Xcode tools are present. An older install without the
+probe keeps the earlier behaviour and says so (`fast x87 has no self-check`). The Wine log of a fast start notes
+that upstream's `timewalker: unsupported or inconsistent Rosetta runtime; refusing to patch` is the optional ARPL
+patch, not fast x87. That line had been read as "fast x87 refuses this macOS" on 2026-10-28.
+
+macOS 27.2 (26B123) check, 2026-11-03, re-measured. The disposable 32-bit prefix used the owner's runtime
+`archive-c50cb6145767` and the owner's installed translator files (built 2026-10-25, unchanged). Load 8.6–11:
+
+| probe | plain Rosetta | fast x87 |
+|---|---|---|
+| upstream native FLD m32 (`test_x87_fld`) | PASS | PASS, `RosettaRuntimex87 built` |
+| authored `x87-smoke` | PASS | PASS, `RosettaRuntimex87 built` |
+| `fp_x87.exe` (x87), 3 runs | 2.1 / 2.1 / 2.3 Mverts/s, chk 3.904312 | 233.5 / 225.7 / 220.6 Mverts/s, chk 3.904312 |
+| `fp_sse.exe` (SSE2), 3 runs | 363 / 390 / 468 Mverts/s | 396 / 351 / 401 Mverts/s (not translated) |
+
+At load 4, fast `fp_x87` gave 263–290 Mverts/s. One of 17 fast starts crashed (SIGBUS in the translated
+loader): it was the first start in a fresh prefix, at load 17.8. Hence the self-check's second try.
+
+Live, same session, 2026-11-03 13:58–14:05, owner's app and prefix, Lorencia 144,127, 1280x800 window, mugl mask
+380460463, load 6–7. Each run measured 60 s after closing the news window, from mugl's 2-second `MUGL_STATS`
+intervals (median of 38 each):
+
+| run | main.exe through | fps | frame work | launch → main.exe / login window / in world |
+|---|---|---|---|---|
+| A, `MU_FAST_X87=1` | `runtime_loader` (translator) | 25.0 (cap) | 16.5 ms (p10–p90 16.4–16.6) | in world after 90 s (wall clock) |
+| B, `MU_FAST_X87=0` | plain Rosetta | 25.0 (cap) | 37.4 ms (p10–p90 36.9–39.0) | 33 s / 39 s / 94 s |
+
+The light town scene holds the cap either way. Fast x87 leaves 2.3× more headroom, which matters in busy
+scenes. Start-up time is about the same: the scripted login waits about 45 s, so it dominates.
+
 ## In-game measurements
 
 All runs used the same scene: character Nighty at Tormenta Island 135,10 on MTM-1 (a busy PvP boss area), MU

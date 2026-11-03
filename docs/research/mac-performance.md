@@ -66,6 +66,12 @@ Environment verified locally:
 - libRosettaRuntime UUID `A1DA2B2A-3D68-33CB-A631-FA772DCDD167`.
 - Apple clang 21.0.0, `clang-2100.3.34.2`; MinGW GCC 16.2.0.
 
+macOS 27.2 (26B123, xnu-13432.41.4, 2026-11-03) changed both Rosetta binaries: runtime UUID
+`F3828FD0-9E2C-3FA7-865A-5AC7E3D330D0`, libRosettaRuntime UUID `4886E20F-2BEF-388D-995D-D75B667666C3` (Rosetta
+version `0x16f0200000000`). The pinned `ab1a6a03` translator still activates there and keeps the checksum. The ARPL
+UUID refusal is unchanged and still separate. Fast x87 needs no new pin; upstream rosetta-timewalker has no commit
+after `ab1a6a03`. Measurements are in [`mac-free-runtime.md`](mac-free-runtime.md#self-check-after-macos-updates-wine-fastx87-002-2026-11-03).
+
 Create a disposable bottle using `mac-play/setup-crossover-32bit.sh`, then run
 `mac-play/install-fast-x87.sh --bottle NAME`. The installer builds from the pin
 in `~/Library/Caches/MuTheMatrix/fast-x87/COMMIT/source`, runs the upstream native

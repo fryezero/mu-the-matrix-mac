@@ -1084,7 +1084,7 @@ step_fast_x87_free() {
     done
     [ "$missing" = 0 ] || { mukit_warn 'fast x87 skipped (incomplete translator folder).'; return 0; }
     mukit_run mkdir -p "$fx"
-    for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 x87-main-only-wrapper LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md; do
+    for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 x87-main-only-wrapper x87-smoke LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md; do
         s="$src/$f"; [ -f "$s" ] || s="$src/x87/bin/$f"
         [ -f "$s" ] || continue
         d="$fx/$f"
@@ -1105,6 +1105,17 @@ step_fast_x87_free() {
             mukit_run codesign -f -s - "$fx/x87-main-only-wrapper" >/dev/null 2>&1
         elif [ ! -x "$fx/x87-main-only-wrapper" ]; then
             mukit_warn 'fast x87: no x87-main-only-wrapper and no compiler; skipped.'; return 0
+        fi
+    fi
+    # The self-check probe (mac-play/x87-smoke.c, x86_64): mu-launch.sh runs it through the translator after a
+    # macOS update. Without it fast x87 still works, but an update that breaks it is not detected.
+    if [ "$DRY_RUN" != 1 ] && [ ! -x "$fx/x87-smoke" ]; then
+        if [ -f "$MAC_PLAY/x87-smoke.c" ] && command -v xcrun >/dev/null 2>&1; then
+            todo 'build the fast x87 self-check probe (mac-play/x87-smoke.c)'
+            mukit_run xcrun clang -arch x86_64 -std=c11 -O2 -o "$fx/x87-smoke" "$MAC_PLAY/x87-smoke.c" ||
+                mukit_warn 'fast x87 self-check probe build failed; fast x87 still works, unchecked after macOS updates.'
+        else
+            mukit_warn 'fast x87: no self-check probe (x87-smoke) and no compiler; macOS updates that break it are not detected.'
         fi
     fi
     # Copied out of a downloaded app: drop the quarantine flag, or macOS refuses to run the helpers.

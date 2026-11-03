@@ -5,7 +5,8 @@
 # Bash 3.2 compatible (stock macOS /bin/bash). It does what mac-play/installer/play-mu.sh does, with
 # preflight checks that report one machine-readable error line, a dry-run mode and the resolution setting.
 #
-# Usage: mu-launch.sh [--check | --dry-run | --run | --list-bottles | --list-modes | --status | --fps-counter [on|off]]
+# Usage: mu-launch.sh [--check | --dry-run | --run | --list-bottles | --list-modes | --status | --fps-counter [on|off]
+#                     | --fast-x87-check]
 #   --check         preflight only (runtime, prefix/bottle, 32-bit, game, fast x87, resolution, not running)
 #   --dry-run       preflight, then print every action and the exact command; changes nothing
 #   --run           (default) preflight, apply the resolution, reset the bottle's wineserver, start
@@ -14,13 +15,17 @@
 #   --status        free runtime: "runtime ok|missing", "prefix ok|missing", "game ok|missing" lines
 #   --fps-counter [on|off]  show or hide mugl's in-game FPS counter (C:\mutools\mugl-fps.txt, keeping its
 #                   corner; the game picks it up within a second, also while running); prints "fps-counter on|off"
+#   --fast-x87-check  free runtime: rerun the fast x87 self-check now (as after a macOS update), then preflight
 #
 # Settings come from the environment (the app passes them from its settings plist):
 #   MU_RUNTIME         free (default) | crossover
 #   MU_PREFIX          free: the Wine prefix (default $MUKIT_FREE_HOME/prefix)
 #   MUKIT_FREE_HOME    free: runtime folder (default ~/Library/Application Support/MuTheMatrix)
 #   MU_BOTTLE          crossover: bottle name (required)
-#   MU_FAST_X87        1 = route main.exe through rosetta-timewalker's fast x87 translator; 0 (default) plain
+#   MU_FAST_X87        1 = route main.exe through rosetta-timewalker's fast x87 translator; 0 (default) plain.
+#                      Free runtime: after macOS, Rosetta or the translator changed, the authored x86_64 probe
+#                      (fast-x87/x87-smoke) runs through the translator first; if it fails, the game starts with
+#                      plain Rosetta and a "fast x87 needs revalidation after a macOS update" line says why.
 #   MU_TIMEWALKER_DIR  timewalker checkout with scripts/run-crossover.sh; empty = the validated
 #                      install-fast-x87.sh cache (mac-play/fast-x87.sh)
 #   MU_RESOLUTION      WxH from mu-modes.txt: set LauncherOption.if DevModeIndex before starting; empty = keep
@@ -43,11 +48,12 @@ else LIB="$HERE/../installer/lib/mukit.sh"; FASTX87="$HERE/../fast-x87.sh"; fi
 # shellcheck source=../installer/lib/mukit.sh
 source "$LIB" || { echo "MU-ERROR 2 helper library missing: $LIB"; exit 2; }
 
-MODE=run; FPS_SET=
+MODE=run; FPS_SET=; X87_RECHECK=0
 case "${1:-}" in
     --fps-counter) MODE=fps; FPS_SET=${2:-}
         case "$FPS_SET" in ''|on|off) ;; *) echo "MU-ERROR 2 --fps-counter takes on or off, not '$FPS_SET'"; exit 2 ;; esac ;;
     ''|--run) MODE=run ;; --check) MODE=check ;; --dry-run) MODE=dry ;;
+    --fast-x87-check) MODE=check; X87_RECHECK=1 ;;
     --list-bottles) MODE=bottles ;; --list-modes) MODE=modes ;; --status) MODE=status ;;
     -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d; s/^# \{0,1\}//'; exit 0 ;;
     *) echo "MU-ERROR 2 unknown option: $1"; exit 2 ;;
@@ -66,6 +72,7 @@ RUNTIME=${MU_RUNTIME:-}
 FREE_HOME=$MUKIT_FREE_HOME
 BOTTLE=${MU_BOTTLE:-}
 FAST=${MU_FAST_X87:-0}
+[ "$X87_RECHECK" = 0 ] || FAST=1
 TW_DIR=${MU_TIMEWALKER_DIR:-}
 RES=${MU_RESOLUTION:-}
 WAIT=${MU_START_WAIT:-4}
@@ -153,8 +160,50 @@ if [ "$MODE" = modes ]; then
     exit 0
 fi
 
+# Fast x87 depends on undocumented Rosetta internals, so a macOS update can break it. The translator's identity
+# (macOS build, Rosetta, translator files, probe) is kept in $FX/validated after the probe passed; a changed
+# identity reruns the probe. A failure is remembered in $FX/failed for that identity (no retry on every start).
+free_x87_selfcheck() {
+    local probe="$FX/x87-smoke" ident build checklog="$LOG_DIR/fast-x87-check.log"
+    [ -x "$probe" ] || probe="$HERE/fast-x87/x87-smoke"
+    build=$(sw_vers -buildVersion 2>/dev/null) || build=unknown
+    # shellcheck source=../fast-x87.sh
+    if [ ! -x "$probe" ] || ! { [ -f "$FASTX87" ] && source "$FASTX87"; }; then
+        info "fast x87 has no self-check (no x87-smoke probe): a macOS update that breaks it goes unnoticed. Update the app and click Repair... to add it."
+        return 0
+    fi
+    ident=$(fast_x87_free_identity "$FX" "$INNER" "$probe" 2>/dev/null) || ident=
+    if [ "$X87_RECHECK" = 1 ]; then
+        rm -f "$FX/validated" "$FX/failed"
+    elif [ -n "$ident" ] && [ "$(cat "$FX/validated" 2>/dev/null)" = "$ident" ]; then
+        X87_NOTE="self-check passed for macOS $build"; return 0
+    elif [ -n "$ident" ] && [ "$(cat "$FX/failed" 2>/dev/null)" = "$ident" ]; then
+        FREE_X87=0; info "$(free_x87_stale "$build" "$checklog")"; return 0
+    fi
+    if [ "$MODE" = dry ]; then
+        plan "fast x87 self-check (macOS $build, Rosetta or the translator changed): $FX/runtime_loader $probe"
+        return 0
+    fi
+    mkdir -p "$LOG_DIR" || fail 2 "Cannot create log directory $LOG_DIR."
+    if fast_x87_free_selfcheck "$FX" "$probe" "$checklog"; then
+        rm -f "$FX/failed"
+        [ -z "$ident" ] || { printf '%s\n' "$ident" > "$FX/validated.tmp" && mv -f "$FX/validated.tmp" "$FX/validated"; }
+        X87_NOTE="self-check passed for macOS $build"
+        info "fast x87 self-check passed on macOS $build (log $checklog)"
+    else
+        FREE_X87=0; rm -f "$FX/validated"
+        [ -z "$ident" ] || printf '%s\n' "$ident" > "$FX/failed"
+        info "$(free_x87_stale "$build" "$checklog")"
+    fi
+}
+free_x87_stale() {
+    printf 'fast x87 needs revalidation after a macOS update: its self-check failed on macOS %s (log %s); using plain Rosetta. Install a fast x87 build for this macOS (Repair... with a newer app), then run: %s --fast-x87-check' \
+        "$1" "$2" "$HERE/mu-launch.sh"
+}
+
 RUNNER=("$CX_ROOT/bin/wine")
 [ "$RUNTIME" = free ] && RUNNER=("$WINE")
+X87_NOTE=
 X87_ENV=()
 FREE_X87=0
 if [ "$FAST" = 1 ] && [ "$RUNTIME" = free ]; then
@@ -165,6 +214,7 @@ if [ "$FAST" = 1 ] && [ "$RUNTIME" = free ]; then
     if [ -x "$FX/x87-main-only-wrapper" ] && [ -x "$FX/runtime_loader" ] && [ -x "$FX/libRuntimeRosettax87" ] &&
        [ -f "$FX/libtimewalker.dylib" ] && [ -x "$INNER" ]; then
         FREE_X87=1
+        free_x87_selfcheck
     else
         info "fast x87 not available for this runtime (not installed, or the runtime has no inner loader); using plain Rosetta"
     fi
@@ -177,7 +227,7 @@ elif [ "$FAST" = 1 ]; then
     else
         # shellcheck source=../fast-x87.sh
         { [ -f "$FASTX87" ] && source "$FASTX87" && fast_x87_ready 2>/dev/null; } ||
-            fail 15 "Fast x87 is on, but no validated runtime was found. Run mac-play/install-fast-x87.sh, choose a timewalker folder in Settings, or turn fast x87 off."
+            fail 15 "Fast x87 is on, but no validated runtime was found. $( { [ -f "$FASTX87" ] && source "$FASTX87" && fast_x87_stale_reason; } 2>/dev/null || echo 'Run mac-play/install-fast-x87.sh.') Or choose a timewalker folder in Settings, or turn fast x87 off."
         RUNNER=("$FAST_X87_HOME/source/scripts/run-crossover.sh")
         X87_ENV=(TIMEWALKER_CROSSOVER_ROOT="$CX_ROOT" TIMEWALKER_X87_LOADER_WRAPPER="$FAST_X87_HOME/x87-main-only-wrapper" TIMEWALKER_X87_ONLY=main.exe)
     fi
@@ -250,7 +300,10 @@ fi
 WINEPREFIX="$PREFIX" "${RESET[@]}" >/dev/null 2>&1
 sleep 1
 info "starting ${CMD[*]}"
-{ echo "== $(date '+%Y-%m-%d %H:%M:%S') mu-launch.sh: runtime $RUNTIME $NAME fast-x87 $FAST resolution ${RES:-keep}"; } > "$LOG"
+{ echo "== $(date '+%Y-%m-%d %H:%M:%S') mu-launch.sh: runtime $RUNTIME $NAME fast-x87 $FAST resolution ${RES:-keep}"
+  [ "$FREE_X87" = 1 ] && echo "== fast x87 on${X87_NOTE:+ ($X87_NOTE)}. A 'timewalker: unsupported or inconsistent Rosetta runtime; refusing to patch' line below is the optional ARPL patch, not fast x87."
+  [ "$RUNTIME" = free ] && [ "$FAST" = 1 ] && [ "$FREE_X87" = 0 ] && echo "== fast x87 off: mu-launch.sh's MU-INFO lines (app.log) say why"
+  true; } > "$LOG"
 # Agent/session variables must not reach Wine processes (they would show up in Windows command lines).
 for v in $(env | sed -n 's/^\(CLAUDE[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$v"; done
 [ "$RUNTIME" = free ] && { cd "$GAME" || fail 2 "Cannot enter $GAME."; }
