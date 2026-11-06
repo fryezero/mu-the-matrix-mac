@@ -16,7 +16,8 @@
 # It refuses a second instance (one client at a time, across all prefixes) and restarts the prefix's idle
 # wineserver first, because stale display state after sleep breaks the launcher. It starts the original
 # launcher MuTheMatrix.exe in C:\MuTheMatrix; log: ~/Library/Logs/MuTheMatrix-<name>.log (per prefix, so
-# starting one never truncates another one's running log).
+# starting one never truncates another one's running log). The free runtime delegates to mu-launch.sh, uses
+# MU_LOG_DIR/wine-<prefix>.log and accepts --fast-x87-check, --check and --dry-run.
 for _v in ${(k)parameters[(I)CLAUDE*]}; do unset $_v; done; unset _v
 RUNTIME=${MU_RUNTIME:-}
 # Launchers written by earlier kit versions set only MU_BOTTLE: keep them on CrossOver.
@@ -26,29 +27,15 @@ if pgrep -f 'C:\\MuTheMatrix\\main.exe' >/dev/null || pgrep -f 'C:\\MuTheMatrix\
   exit 1
 fi
 if [ "$RUNTIME" = free ]; then
-  HOME_DIR=${MUKIT_FREE_HOME:-$HOME/Library/Application Support/MuTheMatrix}
-  PREFIX=${MU_PREFIX:-$HOME_DIR/prefix}
-  RT="$HOME_DIR/runtime/$(cat "$HOME_DIR/runtime/current" 2>/dev/null | tr -d '\r\n ')"
-  [ -x "$RT/wine/bin/wine" ] || { echo "No Wine runtime in $HOME_DIR/runtime (run setup-mu-mac.sh)" >&2; exit 1; }
-  [ -f "$PREFIX/drive_c/MuTheMatrix/MuTheMatrix.exe" ] || { echo "Mu The Matrix is not installed in $PREFIX" >&2; exit 1; }
-  export WINEPREFIX="$PREFIX" WINEDEBUG=${MU_DEBUGMSG:--all}
-  unset WINEARCH WINEDLLOVERRIDES
-  "$RT/wine/bin/wineserver" -k 2>/dev/null
-  sleep 1
-  mkdir -p "$HOME/Library/Logs"
-  LOG=$HOME/Library/Logs/MuTheMatrix-${PREFIX:t}.log
-  cd "$PREFIX/drive_c/MuTheMatrix" || exit 1
-  FX="$HOME_DIR/fast-x87"; INNER="$RT/wine/lib/wine/x86_64-unix/wine"
-  if [ "${MU_FAST_X87:-1}" = 1 ] && [ -x "$FX/x87-main-only-wrapper" ] && [ -x "$FX/runtime_loader" ] && [ -f "$FX/libtimewalker.dylib" ] && [ -x "$INNER" ]; then
-    # Fast x87 for main.exe only (rosetta-timewalker); the .NET launcher keeps the plain loader.
-    export WINESERVER="$RT/wine/bin/wineserver" WINELOADER="$FX/x87-main-only-wrapper" DYLD_INSERT_LIBRARIES="$FX/libtimewalker.dylib" \
-      TIMEWALKER_X87_ACTIVE=1 TIMEWALKER_X87_ONLY=main.exe TIMEWALKER_X87_REAL_LOADER="$INNER" TIMEWALKER_X87_RUNTIME_LOADER="$FX/runtime_loader" \
-      TIMEWALKER_CROSSOVER_LOADER="$FX/x87-main-only-wrapper" TIMEWALKER_CROSSOVER_LOADER_SOURCE="$INNER" \
-      TIMEWALKER_CROSSOVER_WINESERVER="$RT/wine/bin/wineserver" TIMEWALKER_CROSSOVER_WINESERVER_SOURCE="$RT/wine/bin/wineserver"
-    exec "$FX/x87-main-only-wrapper" MuTheMatrix.exe >"$LOG" 2>&1
-  fi
-  exec "$RT/wine/bin/wine" MuTheMatrix.exe >"$LOG" 2>&1
+  # Use the app's preflight, identity cache and fallback instead of a second fast-x87 policy.
+  HERE=${0:A:h}
+  LAUNCH="$HERE/../mu-launch.sh"                  # app Resources/installer
+  [ -f "$LAUNCH" ] || LAUNCH="$HERE/../bundle/mu-launch.sh"  # source checkout
+  [ -f "$LAUNCH" ] || { echo "Missing mu-launch.sh; update the installer kit." >&2; exit 1; }
+  export MU_RUNTIME=free MU_FAST_X87=${MU_FAST_X87:-1}
+  exec /bin/bash "$LAUNCH" "$@"
 fi
+
 CX=${CX_ROOT:-/Applications/CrossOver.app/Contents/SharedSupport/CrossOver}
 BOTTLE=${MU_BOTTLE:-MuMatrixKit}
 # stale display state after sleep breaks the launcher; restart this (idle) bottle's wineserver

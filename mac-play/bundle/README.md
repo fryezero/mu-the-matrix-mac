@@ -55,6 +55,10 @@ make player-dmg EMBED_MUGL=/path/to/mugl-v77.dll EMBED_MSCOREE=/path/to/mscoree.
 # player-app: the same without the disk image; both also work as make -C mac-play/bundle ...
 ```
 
+To preserve an existing offline news-font payload, also pass
+`EMBED_EMOJI_FONT=/path/to/TwemojiMozilla.ttf`. The build checks the installer's pinned SHA-256 and copies the
+font beside its attribution before signing. Without this optional input, setup downloads the same pinned font.
+
 `player-app` refuses to build unless all four are given: both DLLs must exist and start with `MZ`, the fast x87
 folder (from `../installer/packaging/package-fast-x87.sh`) must hold `libtimewalker.dylib`, `runtime_loader` and
 `libRuntimeRosettax87`, and the runtime must be exactly the tested build: its name and SHA-256 are pinned in

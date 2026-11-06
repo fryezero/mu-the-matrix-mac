@@ -282,6 +282,14 @@ has 'x87 recheck: fast x87 on'   "$X" 'fast x87 on'
 [ -f "$FX/validated" ] && [ ! -e "$FX/failed" ] && ok 'x87 recheck: validated again' || bad 'x87 recheck: validated again'
 echo 'translator 2' >> "$FX/libRuntimeRosettax87"
 has 'x87 update: new translator rechecked' "$(MU_FAST_X87=1 L --check)" 'self-check passed'
+if command -v zsh >/dev/null 2>&1; then
+    X=$(zsh "$BUNDLE_DIR/../installer/play-mu.sh" --fast-x87-check 2>&1)
+    has 'play-mu: shared self-check passes' "$X" 'fast x87 self-check passed'
+    X=$(MU_TEST_X87=inactive zsh "$BUNDLE_DIR/../installer/play-mu.sh" --fast-x87-check 2>&1)
+    has 'play-mu: inactive translator falls back' "$X" 'fast x87 off'
+    X=$(zsh "$BUNDLE_DIR/../installer/play-mu.sh" --fast-x87-check 2>&1)
+    has 'play-mu: explicit retry recovers' "$X" 'fast x87 on'
+fi
 unset MU_ROSETTA_FILES MU_TEST_BUILD
 
 echo '# app bundle'
@@ -578,6 +586,13 @@ EOS
         hdiutil detach -quiet "$MNT" || hdiutil detach -quiet -force "$MNT"
     else bad 'disk image mounts'; fi
     if hdiutil verify -quiet "$DMG"; then ok 'disk image checksum verifies'; else bad 'disk image checksum verifies'; fi
+    printf 'synthetic emoji font' > "$EMB/font.ttf"
+    FONT_SHA=$(shasum -a 256 "$EMB/font.ttf" | awk '{print $1}')
+    if make -C "$BUNDLE_DIR" B="$PB" player-app "${EMBEDS[@]}" EMBED_RUNTIME="$EMB/runtime.tar.xz" RUNTIME_SHA256="$RTSHA" EMBED_EMOJI_FONT="$EMB/font.ttf" >"$TMPD/font-bad.log" 2>&1; then
+        bad 'font embed refuses wrong hash'; else ok 'font embed refuses wrong hash'; fi
+    if MUKIT_EMOJI_FONT_SHA256="$FONT_SHA" make -C "$BUNDLE_DIR" B="$PB" player-app "${EMBEDS[@]}" EMBED_RUNTIME="$EMB/runtime.tar.xz" RUNTIME_SHA256="$RTSHA" EMBED_EMOJI_FONT="$EMB/font.ttf" >"$TMPD/font-good.log" 2>&1; then
+        ok 'font embed accepts pinned bytes'; else bad 'font embed accepts pinned bytes'; fi
+    cmp -s "$EMB/font.ttf" "$PB/Mu The Matrix.app/Contents/Resources/installer/fonts/TwemojiMozilla.ttf" && ok 'font embed preserves bytes' || bad 'font embed preserves bytes'
 fi
 
 echo
