@@ -1,5 +1,9 @@
 # Continue from here (Wine track)
 
+## Staged owner app refresh (WINE-APP-REFRESH-001, 2026-11-05)
+
+Read [the refresh handoff](handoffs/WINE-APP-REFRESH-001.md) for the exact bundle diff, inputs, owner swap/rollback commands and Desktop report. The staged app preserves v7.7/v3, translator and news font, adds the CX26 archive and fast-x87 probe, and shares the self-check with play-mu.sh. Launcher-only live proof passed; settings restored, locks released, owner app unchanged. Next: owner runs swap; steward merges the reviewed source changes.
+
 ## Fast x87 after macOS updates (WINE-FASTX87-002, 2026-11-03)
 
 Read [`research/mac-free-runtime.md`](research/mac-free-runtime.md#self-check-after-macos-updates-wine-fastx87-002-2026-11-03).

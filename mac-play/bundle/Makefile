@@ -38,6 +38,7 @@ INSTALL_DIR ?= $(HOME)/Applications
 EMBED_MUGL ?=
 EMBED_MSCOREE ?=
 EMBED_FAST_X87 ?=
+EMBED_EMOJI_FONT ?=
 EMBED_RUNTIME ?=
 # The runtime pin lives in Sources/Core.swift (RuntimeFile); RUNTIME_SHA256 may be overridden only by the tests.
 RUNTIME_NAME := $(shell sed -n 's/.*static let testedName = "\([^"]*\)".*/\1/p' Sources/Core.swift)
@@ -54,7 +55,7 @@ RESOURCES := mu-launch.sh ../installer/lib/mukit.sh ../fast-x87.sh
 INSTALLER_FILES := ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh \
 	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg ../installer/fonts/Twemoji-Mozilla.md
 STAMP := $(B)/.app-stamp
-VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)|$(EMBED_FAST_X87)|$(EMBED_RUNTIME)
+VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)|$(EMBED_FAST_X87)|$(EMBED_RUNTIME)|$(EMBED_EMOJI_FONT)|$(shell test -z "$(EMBED_EMOJI_FONT)" || shasum -a 256 "$(EMBED_EMOJI_FONT)" 2>/dev/null)
 
 all: $(STAMP)
 
@@ -100,6 +101,10 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 	cp ../installer/registry/mu-mac.reg $(APPQ)/Contents/Resources/installer/registry/
 	mkdir -p $(APPQ)/Contents/Resources/installer/fonts
 	cp ../installer/fonts/Twemoji-Mozilla.md $(APPQ)/Contents/Resources/installer/fonts/
+	@if [ -n "$(EMBED_EMOJI_FONT)" ]; then \
+	  bash -c 'source ../installer/lib/mukit.sh; [ "$$(mukit_sha256 "$$1")" = "$$MUKIT_EMOJI_FONT_SHA256" ]' font "$(EMBED_EMOJI_FONT)" || \
+	    { echo "EMBED_EMOJI_FONT does not match the pinned Twemoji font" >&2; exit 1; }; \
+	  cp "$(EMBED_EMOJI_FONT)" $(APPQ)/Contents/Resources/installer/fonts/TwemojiMozilla.ttf; fi
 	@if [ -n "$(EMBED_MUGL)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MUGL)" $(APPQ)/Contents/Resources/dlls/opengl32.dll && echo "bundled mugl $(EMBED_MUGL)"; fi
 	@if [ -n "$(EMBED_FAST_X87)" ]; then mkdir -p $(APPQ)/Contents/Resources/fast-x87 && \
 	  for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md SOURCE.txt; do \

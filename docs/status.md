@@ -1,5 +1,9 @@
 # Current status (Wine track)
 
+## Owner app refresh staged, 2026-11-05
+
+WINE-APP-REFRESH-001 prepares an ad-hoc-signed player app without changing the owner app. Artwork/news, colored emoji, green START and the fast-x87 validated record were observed. The owner-run swap tool backs up the complete app before replacement and supports rollback. The old Desktop commands are reported only. See [comparison, checks and limits](handoffs/WINE-APP-REFRESH-001.md).
+
 ## Fast x87 checked on macOS 27.2, self-check after updates, 2026-11-03
 
 WINE-FASTX87-002: after the macOS 27.0 → 27.2 update, the owner's free-runtime app still selects fast x87, and the

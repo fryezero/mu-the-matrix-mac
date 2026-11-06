@@ -137,6 +137,15 @@ intervals (median of 38 each):
 The light town scene holds the cap either way. Fast x87 leaves 2.3× more headroom, which matters in busy
 scenes. Start-up time is about the same: the scripted login waits about 45 s, so it dominates.
 
+### Staged app refresh (WINE-APP-REFRESH-001, 2026-11-05)
+
+The [refresh handoff](../handoffs/WINE-APP-REFRESH-001.md) records a newly built player app using the owner's
+unchanged translator/DLL payloads, plus the pinned CX26 runtime archive and authored probe. The owner app was
+not replaced. The staged launcher passed its self-check on 26B123, wrote its validated identity and displayed
+artwork, colored news emoji and START. The explicit recheck passed in 0.34 s. The setup's play-mu.sh now delegates
+to mu-launch.sh for free-runtime starts, so both use the same cache and fallback. This was launcher-only proof;
+the earlier Lorencia frame-work numbers above were not re-measured.
+
 ## In-game measurements
 
 All runs used the same scene: character Nighty at Tormenta Island 135,10 on MTM-1 (a busy PvP boss area), MU
